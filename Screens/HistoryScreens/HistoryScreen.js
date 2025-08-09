@@ -19,7 +19,7 @@ const gradePoints = {
 const grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F'];
 
 export default function HistoryScreen() {
-  const { studentData, addGrade, predictionHistory, exportPredictionData } = useML();
+  const { studentData, addGrade, predictionHistory, exportPredictionData, deletePredictions, deleteGrades } = useML();
   const [showAddGrade, setShowAddGrade] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGrades, setFilteredGrades] = useState(studentData.grades);
@@ -106,12 +106,22 @@ export default function HistoryScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            // Here you would implement the actual deletion logic
-            // For now, we'll just clear the selection
-            setSelectedItems(new Set());
-            setIsSelectionMode(false);
-            Alert.alert('Success', 'Selected items deleted successfully');
+          onPress: async () => {
+            try {
+              const itemIds = Array.from(selectedItems);
+              
+              if (activeTab === 'predictions') {
+                await deletePredictions(itemIds);
+              } else {
+                await deleteGrades(itemIds);
+              }
+              
+              setSelectedItems(new Set());
+              setIsSelectionMode(false);
+              Alert.alert('Success', 'Selected items deleted successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete selected items');
+            }
           }
         }
       ]
@@ -396,7 +406,93 @@ export default function HistoryScreen() {
         )}
       </View>
 
-      {/* Modal logic omitted here to save space but is same as yours */}
+      {/* Add Grade Modal */}
+      <Modal visible={showAddGrade} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Grade</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Course Name *</Text>
+              <TextInput
+                style={styles.inputField}
+                value={newGrade.courseName}
+                onChangeText={(text) => setNewGrade(prev => ({ ...prev, courseName: text }))}
+                placeholder="Enter course name"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Course Code</Text>
+              <TextInput
+                style={styles.inputField}
+                value={newGrade.courseCode}
+                onChangeText={(text) => setNewGrade(prev => ({ ...prev, courseCode: text }))}
+                placeholder="Enter course code (optional)"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Grade *</Text>
+              <View style={styles.chipsContainer}>
+                {grades.map((grade) => (
+                  <TouchableOpacity
+                    key={grade}
+                    style={[
+                      styles.chip,
+                      newGrade.grade === grade && styles.chipSelected
+                    ]}
+                    onPress={() => setNewGrade(prev => ({ ...prev, grade }))}
+                  >
+                    <Text style={[
+                      styles.chipText,
+                      newGrade.grade === grade && { color: colors.background }
+                    ]}>
+                      {grade}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Credits *</Text>
+              <TextInput
+                style={styles.inputField}
+                value={newGrade.credits}
+                onChangeText={(text) => setNewGrade(prev => ({ ...prev, credits: text }))}
+                placeholder="Enter credit hours"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Semester</Text>
+              <TextInput
+                style={styles.inputField}
+                value={newGrade.semester}
+                onChangeText={(text) => setNewGrade(prev => ({ ...prev, semester: text }))}
+                placeholder="e.g. Fall 2024"
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.button, styles.buttonSecondary]} 
+                onPress={() => setShowAddGrade(false)}
+              >
+                <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.button, styles.buttonPrimary]} 
+                onPress={handleAddGrade}
+              >
+                <Text style={styles.buttonText}>Add Grade</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

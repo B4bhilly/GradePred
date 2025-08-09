@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MLContext = createContext();
 
@@ -21,10 +22,53 @@ export function MLProvider({ children }) {
   // API base URL - should be configurable
   const API_BASE_URL = 'http://192.168.60.104:5000/api'; // Using local network IP for mobile/emulator access
 
-  // Check if backend is available
+  // Load data from storage on app start
   useEffect(() => {
+    loadStoredData();
     checkAPIHealth();
   }, []);
+
+  // Load stored data from AsyncStorage
+  const loadStoredData = async () => {
+    try {
+      // Load student data
+      const storedStudentData = await AsyncStorage.getItem('studentData');
+      if (storedStudentData) {
+        const parsedData = JSON.parse(storedStudentData);
+        setStudentData(parsedData);
+      }
+
+      // Load prediction history
+      const storedPredictions = await AsyncStorage.getItem('predictionHistory');
+      if (storedPredictions) {
+        const parsedPredictions = JSON.parse(storedPredictions);
+        setPredictionHistory(parsedPredictions);
+        setPredictions(parsedPredictions);
+      }
+    } catch (error) {
+      console.error('Error loading stored data:', error);
+    }
+  };
+
+  // Save data to storage
+  const saveDataToStorage = async (key, data) => {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error(`Error saving ${key} to storage:`, error);
+    }
+  };
+
+  // Helper function to get grade points
+  const getGradePoints = (grade) => {
+    const gradePoints = {
+      'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+      'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+      'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+      'D+': 1.3, 'D': 1.0, 'F': 0.0
+    };
+    return gradePoints[grade] || 0.0;
+  };
 
   // Fetch student data from backend API
   useEffect(() => {
@@ -102,9 +146,15 @@ export function MLProvider({ children }) {
           inputData: predictionData,
         };
         
+        const newPredictions = [predictionWithMetadata, ...predictions];
+        const newPredictionHistory = [predictionWithMetadata, ...predictionHistory];
+        
         setCurrentPrediction(predictionWithMetadata);
-        setPredictions([predictionWithMetadata, ...predictions]);
-        setPredictionHistory([predictionWithMetadata, ...predictionHistory]);
+        setPredictions(newPredictions);
+        setPredictionHistory(newPredictionHistory);
+        
+        // Save to storage
+        await saveDataToStorage('predictionHistory', newPredictionHistory);
         
         setLoading(false);
         return predictionWithMetadata;
@@ -122,7 +172,7 @@ export function MLProvider({ children }) {
   }
 
   // Fallback prediction function
-  function generateFallbackPrediction(predictionData) {
+  async function generateFallbackPrediction(predictionData) {
     const { current_gpa, previous_gpa, study_hours, attendance, courses } = predictionData;
     
     // Simple prediction algorithm
@@ -168,9 +218,15 @@ export function MLProvider({ children }) {
       isFallback: true,
     };
     
+    const newPredictions = [predictionWithMetadata, ...predictions];
+    const newPredictionHistory = [predictionWithMetadata, ...predictionHistory];
+    
     setCurrentPrediction(predictionWithMetadata);
-    setPredictions([predictionWithMetadata, ...predictions]);
-    setPredictionHistory([predictionWithMetadata, ...predictionHistory]);
+    setPredictions(newPredictions);
+    setPredictionHistory(newPredictionHistory);
+    
+    // Save to storage
+    await saveDataToStorage('predictionHistory', newPredictionHistory);
     
     return predictionWithMetadata;
   }
@@ -188,11 +244,29 @@ export function MLProvider({ children }) {
         setStudentData(updatedData);
         return updatedData;
       } else {
-        // Fallback: just update local state
-        setStudentData(prev => ({
-          ...prev,
-          grades: [...prev.grades, gradeData]
-        }));
+        // Fallback: update local state and save to storage
+        const updatedStudentData = {
+          ...studentData,
+          grades: [...studentData.grades, gradeData],
+          totalCredits: studentData.totalCredits + (gradeData.credits || 0)
+        };
+        
+        // Calculate new GPA and CWA
+        const totalPoints = updatedStudentData.grades.reduce((sum, grade) => {
+          const gradePoints = getGradePoints(grade.grade);
+          return sum + (gradePoints * (grade.credits || 0));
+        }, 0);
+        
+        const totalCredits = updatedStudentData.grades.reduce((sum, grade) => sum + (grade.credits || 0), 0);
+        
+        if (totalCredits > 0) {
+          updatedStudentData.currentGpa = parseFloat((totalPoints / totalCredits).toFixed(2));
+          updatedStudentData.currentCwa = parseFloat(((totalPoints / totalCredits) * 25).toFixed(1));
+        }
+        
+        setStudentData(updatedStudentData);
+        await saveDataToStorage('studentData', updatedStudentData);
+        
         return { success: true, message: 'Grade added locally' };
       }
     } catch (error) {
@@ -300,6 +374,53 @@ export function MLProvider({ children }) {
     };
   }
 
+  // Function to delete predictions
+  const deletePredictions = async (predictionIds) => {
+    try {
+      const updatedPredictions = predictionHistory.filter(pred => !predictionIds.includes(pred.id));
+      setPredictionHistory(updatedPredictions);
+      setPredictions(updatedPredictions);
+      await saveDataToStorage('predictionHistory', updatedPredictions);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting predictions:', error);
+      throw error;
+    }
+  };
+
+  // Function to delete grades
+  const deleteGrades = async (gradeIds) => {
+    try {
+      const updatedGrades = studentData.grades.filter(grade => !gradeIds.includes(grade.id));
+      const updatedStudentData = { ...studentData, grades: updatedGrades };
+      
+      // Recalculate GPA and CWA
+      const totalPoints = updatedGrades.reduce((sum, grade) => {
+        const gradePoints = getGradePoints(grade.grade);
+        return sum + (gradePoints * (grade.credits || 0));
+      }, 0);
+      
+      const totalCredits = updatedGrades.reduce((sum, grade) => sum + (grade.credits || 0), 0);
+      
+      if (totalCredits > 0) {
+        updatedStudentData.currentGpa = parseFloat((totalPoints / totalCredits).toFixed(2));
+        updatedStudentData.currentCwa = parseFloat(((totalPoints / totalCredits) * 25).toFixed(1));
+        updatedStudentData.totalCredits = totalCredits;
+      } else {
+        updatedStudentData.currentGpa = 0;
+        updatedStudentData.currentCwa = 0;
+        updatedStudentData.totalCredits = 0;
+      }
+      
+      setStudentData(updatedStudentData);
+      await saveDataToStorage('studentData', updatedStudentData);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting grades:', error);
+      throw error;
+    }
+  };
+
   const value = {
     studentData,
     predictions,
@@ -316,6 +437,9 @@ export function MLProvider({ children }) {
     calculateGPATrend,
     getAcademicRecommendations,
     exportPredictionData,
+    deletePredictions,
+    deleteGrades,
+    loadStoredData,
   };
 
   return (
