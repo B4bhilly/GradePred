@@ -70,6 +70,71 @@ export function MLProvider({ children }) {
     return gradePoints[grade] || 0.0;
   };
 
+  // Function to update student data based on prediction input
+  const updateStudentDataFromPrediction = async (predictionData) => {
+    try {
+      const { current_gpa, currentCwa, courses, credit_hours } = predictionData;
+      
+      // Convert grade percentages to letter grades for courses
+      const processedCourses = courses?.filter(course => course.name && course.grade && course.credit)
+        .map(course => ({
+          id: Date.now() + Math.random(),
+          courseName: course.name,
+          grade: convertPercentageToGrade(parseFloat(course.grade)),
+          credits: parseInt(course.credit),
+          timestamp: new Date().toISOString()
+        })) || [];
+
+      // Merge with existing grades (avoid duplicates)
+      const existingCourseNames = studentData.grades.map(g => g.courseName);
+      const newCourses = processedCourses.filter(course => 
+        !existingCourseNames.includes(course.courseName)
+      );
+
+      const allGrades = [...studentData.grades, ...newCourses];
+      
+      // Calculate totals
+      const totalCredits = allGrades.reduce((sum, grade) => sum + (grade.credits || 0), 0);
+      const totalPoints = allGrades.reduce((sum, grade) => {
+        const gradePoints = getGradePoints(grade.grade);
+        return sum + (gradePoints * (grade.credits || 0));
+      }, 0);
+
+      const calculatedGpa = totalCredits > 0 ? parseFloat((totalPoints / totalCredits).toFixed(2)) : 0;
+      const calculatedCwa = calculatedGpa * 25;
+
+      // Use current input if provided, otherwise use calculated values
+      const updatedStudentData = {
+        ...studentData,
+        currentGpa: current_gpa ? parseFloat(current_gpa) : calculatedGpa,
+        currentCwa: currentCwa ? parseFloat(currentCwa) : calculatedCwa,
+        totalCredits: credit_hours ? parseInt(credit_hours) : totalCredits,
+        grades: allGrades
+      };
+
+      setStudentData(updatedStudentData);
+      await saveDataToStorage('studentData', updatedStudentData);
+    } catch (error) {
+      console.error('Error updating student data:', error);
+    }
+  };
+
+  // Helper function to convert percentage to letter grade
+  const convertPercentageToGrade = (percentage) => {
+    if (percentage >= 93) return 'A+';
+    if (percentage >= 90) return 'A';
+    if (percentage >= 87) return 'A-';
+    if (percentage >= 83) return 'B+';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 77) return 'B-';
+    if (percentage >= 73) return 'C+';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 67) return 'C-';
+    if (percentage >= 63) return 'D+';
+    if (percentage >= 60) return 'D';
+    return 'F';
+  };
+
   // Fetch student data from backend API
   useEffect(() => {
     if (backendAvailable) {
@@ -124,6 +189,9 @@ export function MLProvider({ children }) {
   async function generatePrediction(predictionData) {
     setLoading(true);
     try {
+      // Update student data based on prediction input
+      await updateStudentDataFromPrediction(predictionData);
+      
       if (backendAvailable) {
         // Try backend first
         const response = await fetch(`${API_BASE_URL}/predict`, {
@@ -388,6 +456,38 @@ export function MLProvider({ children }) {
     }
   };
 
+  // Function to update a grade
+  const updateGrade = async (updatedGrade) => {
+    try {
+      const updatedGrades = studentData.grades.map(grade => 
+        grade.id === updatedGrade.id ? updatedGrade : grade
+      );
+      
+      // Recalculate GPA, CWA, and total credits
+      const totalCredits = updatedGrades.reduce((sum, grade) => sum + grade.credits, 0);
+      const totalGradePoints = updatedGrades.reduce((sum, grade) => sum + (getGradePoints(grade.grade) * grade.credits), 0);
+      const currentGpa = totalCredits > 0 ? totalGradePoints / totalCredits : 0;
+      const currentCwa = currentGpa * 25; // Convert GPA to CWA
+
+      const updatedStudentData = {
+        ...studentData,
+        grades: updatedGrades,
+        currentGpa: currentGpa,
+        currentCwa: currentCwa,
+        totalCredits: totalCredits,
+        totalCourses: updatedGrades.length,
+      };
+      
+      setStudentData(updatedStudentData);
+      await saveDataToStorage('studentData', updatedStudentData);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating grade:', error);
+      throw error;
+    }
+  };
+
   // Function to delete grades
   const deleteGrades = async (gradeIds) => {
     try {
@@ -440,6 +540,8 @@ export function MLProvider({ children }) {
     deletePredictions,
     deleteGrades,
     loadStoredData,
+    updateStudentDataFromPrediction,
+    updateGrade,
   };
 
   return (

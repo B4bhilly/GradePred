@@ -4,6 +4,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
   Modal, Alert, ScrollView, Share, Platform
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useML } from '../../MLContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
@@ -19,35 +20,64 @@ const gradePoints = {
 const grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F'];
 
 export default function HistoryScreen() {
-  const { studentData, addGrade, predictionHistory, exportPredictionData, deletePredictions, deleteGrades } = useML();
+  const { studentData, addGrade, predictionHistory, exportPredictionData, deletePredictions, deleteGrades, updateGrade } = useML();
+  
+  // Debug logging to help identify issues
+  console.log('HistoryScreen - studentData:', studentData);
+  console.log('HistoryScreen - predictionHistory:', predictionHistory);
+  console.log('HistoryScreen - isSelectionMode:', isSelectionMode);
+  console.log('HistoryScreen - activeTab:', activeTab);
   const [showAddGrade, setShowAddGrade] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredGrades, setFilteredGrades] = useState(studentData.grades);
+  const [filteredGrades, setFilteredGrades] = useState(studentData?.grades || []);
   const [filteredPredictions, setFilteredPredictions] = useState([]);
   const [activeTab, setActiveTab] = useState('grades'); // 'grades' or 'predictions'
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  
+  // Force reset selection mode on component mount
+  useEffect(() => {
+    setIsSelectionMode(false);
+    setSelectedItems(new Set());
+  }, []);
+  const [showEditGrade, setShowEditGrade] = useState(false);
+  const [editingGrade, setEditingGrade] = useState(null);
   const [newGrade, setNewGrade] = useState({
     courseName: '', courseCode: '', grade: '', credits: '', semester: '',
   });
 
   useEffect(() => {
+    // Ensure studentData.grades exists before filtering
+    if (studentData?.grades) {
     setFilteredGrades(
       studentData.grades.filter(item =>
-        item.courseName.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
+          item?.courseName?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    } else {
+      setFilteredGrades([]);
+    }
     
-    setFilteredPredictions(
-      predictionHistory.filter(item =>
-        item.timestamp?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.predicted_gpa?.toString().includes(searchQuery)
-      )
-    );
+    // Ensure predictionHistory exists before filtering
+    if (predictionHistory) {
+      setFilteredPredictions(
+        predictionHistory.filter(item =>
+          item?.timestamp?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item?.predicted_gpa?.toString().includes(searchQuery)
+        )
+      );
+    } else {
+      setFilteredPredictions([]);
+    }
     
+    // Save to AsyncStorage only if data exists
+    if (studentData?.grades) {
     AsyncStorage.setItem('grades', JSON.stringify(studentData.grades));
-    AsyncStorage.setItem('predictionHistory', JSON.stringify(predictionHistory));
-  }, [searchQuery, studentData.grades, predictionHistory]);
+    }
+    if (predictionHistory) {
+      AsyncStorage.setItem('predictionHistory', JSON.stringify(predictionHistory));
+    }
+  }, [searchQuery, studentData?.grades, predictionHistory]);
 
   const handleAddGrade = () => {
     if (!newGrade.courseName || !newGrade.grade || !newGrade.credits) {
@@ -184,20 +214,69 @@ export default function HistoryScreen() {
     window.URL.revokeObjectURL(url);
   };
 
-  const renderGradeItem = ({ item }) => (
-    <TouchableOpacity 
+  const handleEditGrade = (grade) => {
+    setEditingGrade({
+      ...grade
+    });
+    setShowEditGrade(true);
+  };
+
+  const handleSaveEditedGrade = async () => {
+    try {
+      if (!editingGrade) return;
+
+      // Validate required fields
+      if (!editingGrade.courseName.trim() || !editingGrade.courseCode.trim() || 
+          !editingGrade.grade || !editingGrade.credits || !editingGrade.semester.trim()) {
+        Alert.alert('Error', 'Please fill in all required fields');
+        return;
+      }
+
+      // Validate credits is a positive number
+      const creditsNum = parseInt(editingGrade.credits);
+      if (isNaN(creditsNum) || creditsNum <= 0) {
+        Alert.alert('Error', 'Credits must be a positive number');
+        return;
+      }
+
+      const updatedGrade = {
+        ...editingGrade,
+        credits: creditsNum,
+        courseName: editingGrade.courseName.trim(),
+        courseCode: editingGrade.courseCode.trim(),
+        semester: editingGrade.semester.trim(),
+      };
+
+      await updateGrade(updatedGrade);
+      setShowEditGrade(false);
+      setEditingGrade(null);
+      Alert.alert('Success', 'Course updated successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update course');
+    }
+  };
+
+  const renderGradeItem = ({ item }) => {
+    // Safety check
+    if (!item) return null;
+    
+    return (
+    <View 
       style={[
         styles.listItem,
         isSelectionMode && selectedItems.has(item.id) && styles.selectedItem
       ]}
-      onPress={() => isSelectionMode && toggleItemSelection(item.id)}
-      onLongPress={() => {
-        setIsSelectionMode(true);
-        toggleItemSelection(item.id);
-      }}
     >
+      <TouchableOpacity 
+        style={styles.listItemContent}
+        onPress={() => isSelectionMode && toggleItemSelection(item.id)}
+        onLongPress={() => {
+          setIsSelectionMode(true);
+          toggleItemSelection(item.id);
+        }}
+      >
       <View style={styles.listItemHeader}>
-        <View style={{ flex: 1 }}>
+          <View style={{ flex: 1 }}>
           <Text style={styles.listItemTitle}>{item.courseName}</Text>
           {item.courseCode ? <Text style={styles.listItemMeta}>{item.courseCode}</Text> : null}
           {item.semester ? <Text style={styles.listItemMeta}>{item.semester}</Text> : null}
@@ -208,23 +287,45 @@ export default function HistoryScreen() {
           </View>
           <Text style={styles.listItemMeta}>{item.credits} Credits</Text>
           <Text style={styles.listItemMeta}>
-            {(gradePoints[item.grade] * item.credits).toFixed(1)} pts
+              {((gradePoints[item.grade] || 0) * (item.credits || 0)).toFixed(1)} pts
           </Text>
-        </View>
-        {isSelectionMode && (
-          <View style={styles.selectionIndicator}>
-            <Ionicons 
-              name={selectedItems.has(item.id) ? "checkmark-circle" : "ellipse-outline"} 
-              size={24} 
-              color={selectedItems.has(item.id) ? colors.primary : colors.textSecondary} 
-            />
           </View>
-        )}
+          {isSelectionMode && (
+            <View style={styles.selectionIndicator}>
+              <Ionicons 
+                name={selectedItems.has(item.id) ? "checkmark-circle" : "ellipse-outline"} 
+                size={24} 
+                color={selectedItems.has(item.id) ? colors.primary : colors.textSecondary} 
+              />
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+      
+      {/* Always show edit button - override selection mode for individual items */}
+      <View style={styles.actionButtonsRow}>
+        <TouchableOpacity 
+          style={styles.editActionButton}
+          onPress={() => {
+            // Exit selection mode and edit the grade
+            setIsSelectionMode(false);
+            setSelectedItems(new Set());
+            handleEditGrade(item);
+          }}
+        >
+          <Ionicons name="create-outline" size={16} color={colors.primary} />
+          <Text style={styles.editActionButtonText}>✏️ Edit Course</Text>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
+  };
 
-  const renderPredictionItem = ({ item }) => (
+  const renderPredictionItem = ({ item }) => {
+    // Safety check
+    if (!item) return null;
+    
+    return (
     <TouchableOpacity 
       style={[
         styles.listItem,
@@ -261,24 +362,24 @@ export default function HistoryScreen() {
         )}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.title}>Academic History</Text>
-          {isSelectionMode && (
-            <TouchableOpacity 
-              onPress={() => {
-                setIsSelectionMode(false);
-                setSelectedItems(new Set());
-              }}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
+        <Text style={styles.title}>Academic History</Text>
+          <TouchableOpacity 
+            style={styles.clearSelectionButton}
+            onPress={() => {
+              setIsSelectionMode(false);
+              setSelectedItems(new Set());
+            }}
+          >
+            <Ionicons name="refresh" size={20} color={colors.primary} />
+            <Text style={styles.clearSelectionText}>Reset</Text>
+          </TouchableOpacity>
         </View>
         <Text style={styles.subtitle}>
           {isSelectionMode 
@@ -365,33 +466,33 @@ export default function HistoryScreen() {
             {activeTab === 'grades' ? 'Course Grades' : 'Prediction History'}
           </Text>
           {activeTab === 'grades' && (
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowAddGrade(true)}>
-              <Text style={styles.addButtonText}>+ Add Grade</Text>
-            </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddGrade(true)}>
+            <Text style={styles.addButtonText}>+ Add Grade</Text>
+          </TouchableOpacity>
           )}
         </View>
 
         {activeTab === 'grades' ? (
           filteredGrades.length > 0 ? (
-            <FlatList
-              data={filteredGrades}
-              keyExtractor={(item) => item.id}
-              renderItem={renderGradeItem}
-            />
-          ) : (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📚</Text>
-              <Text style={styles.emptyTitle}>No grades recorded yet</Text>
-              <Text style={styles.emptyText}>
-                Add your first course grade to start tracking your academic progress
-              </Text>
-            </View>
+          <FlatList
+            data={filteredGrades}
+              keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+            renderItem={renderGradeItem}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📚</Text>
+            <Text style={styles.emptyTitle}>No grades recorded yet</Text>
+            <Text style={styles.emptyText}>
+              Add your first course grade to start tracking your academic progress
+            </Text>
+          </View>
           )
         ) : (
           filteredPredictions.length > 0 ? (
             <FlatList
               data={filteredPredictions}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
               renderItem={renderPredictionItem}
             />
           ) : (
@@ -488,6 +589,90 @@ export default function HistoryScreen() {
                 onPress={handleAddGrade}
               >
                 <Text style={styles.buttonText}>Add Grade</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Grade Modal */}
+      <Modal visible={showEditGrade} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Course</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Course Name</Text>
+              <TextInput
+                style={styles.inputField}
+                value={editingGrade?.courseName || ''}
+                onChangeText={(text) => setEditingGrade(prev => ({ ...prev, courseName: text }))}
+                placeholder="Enter course name"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Course Code</Text>
+              <TextInput
+                style={styles.inputField}
+                value={editingGrade?.courseCode || ''}
+                onChangeText={(text) => setEditingGrade(prev => ({ ...prev, courseCode: text }))}
+                placeholder="Enter course code"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Grade</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={editingGrade?.grade || ''}
+                  style={styles.picker}
+                  onValueChange={(itemValue) => setEditingGrade(prev => ({ ...prev, grade: itemValue }))}
+                >
+                  <Picker.Item label="Select Grade" value="" />
+                  {grades.map(grade => (
+                    <Picker.Item key={grade} label={grade} value={grade} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Credits</Text>
+              <TextInput
+                style={styles.inputField}
+                value={editingGrade?.credits?.toString() || ''}
+                onChangeText={(text) => setEditingGrade(prev => ({ ...prev, credits: text }))}
+                placeholder="Enter credits"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Semester</Text>
+              <TextInput
+                style={styles.inputField}
+                value={editingGrade?.semester || ''}
+                onChangeText={(text) => setEditingGrade(prev => ({ ...prev, semester: text }))}
+                placeholder="e.g., Fall 2023"
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.button, styles.buttonSecondary]} 
+                onPress={() => {
+                  setShowEditGrade(false);
+                  setEditingGrade(null);
+                }}
+              >
+                <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.button, styles.buttonPrimary]} 
+                onPress={handleSaveEditedGrade}
+              >
+                <Text style={styles.buttonText}>Save Changes</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -783,4 +968,56 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
     justifyContent: 'center',
   },
+  listItemContent: {
+    flex: 1,
+  },
+
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  editActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.sm,
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  editActionButtonText: {
+    color: colors.background,
+    fontSize: typography.base,
+    fontWeight: typography.bold,
+    marginLeft: spacing.xs,
+  },
+  selectionModeText: {
+    color: colors.textSecondary,
+    fontSize: typography.sm,
+    fontStyle: 'italic',
+  },
+  clearSelectionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.primary + '15',
+    borderRadius: borderRadius.sm,
+  },
+  clearSelectionText: {
+    color: colors.primary,
+    fontSize: typography.sm,
+    marginLeft: spacing.xs,
+    fontWeight: typography.medium,
+  },
+
 });

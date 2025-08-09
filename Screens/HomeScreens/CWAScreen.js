@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AntDesign, FontAwesome5, Entypo, Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
 import { useML } from '../../MLContext';
 
 const CWAScreen = ({ navigation }) => {
   const { generatePrediction, loading, modelPerformance } = useML();
+  const scrollViewRef = useRef();
   
   const [courses, setCourses] = useState([
     { id: Date.now(), name: '', grade: '', credit: '' },
@@ -27,6 +28,11 @@ const CWAScreen = ({ navigation }) => {
 
   const addCourse = () => {
     setCourses([...courses, { id: Date.now(), name: '', grade: '', credit: '' }]);
+    
+    // Scroll to the new course after a short delay
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
 
@@ -116,9 +122,13 @@ const CWAScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>CWA Predictor</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+      <ScrollView 
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false} 
+        style={styles.scrollView}
+      >
         {!showResults ? (
-          <ScrollView>
+          <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Academic Information</Text>
               <View style={styles.inputRow}>  
@@ -237,7 +247,7 @@ const CWAScreen = ({ navigation }) => {
                 </View>
               ))}
             </View>
-          </ScrollView>
+          </>
         ) : (
           <View style={styles.resultsContainer}>
             <View style={styles.resultCard}>
@@ -247,7 +257,7 @@ const CWAScreen = ({ navigation }) => {
               <View style={styles.predictionContainer}>
                 <Text style={styles.predictionLabel}>Predicted CWA</Text>
                 <Text style={styles.predictionValue}>
-                  {prediction?.predicted_gpa?.toFixed(1) || 'N/A'}
+                  {prediction?.predicted_gpa ? (prediction.predicted_gpa * 25).toFixed(1) : 'N/A'}
                 </Text>
               </View>
               

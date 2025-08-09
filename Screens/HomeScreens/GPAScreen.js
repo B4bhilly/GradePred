@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AntDesign, FontAwesome5, Entypo, Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
 import { useML } from '../../MLContext';
 
 const GPAScreen = ({ navigation }) => {
   const { generatePrediction, loading } = useML();
+  const scrollViewRef = useRef();
   
   const [courses, setCourses] = useState([
     { id: Date.now(), name: '', grade: '', credit: '' },
@@ -27,6 +28,11 @@ const GPAScreen = ({ navigation }) => {
 
   const addCourse = () => {
     setCourses([...courses, { id: Date.now(), name: '', grade: '', credit: '' }]);
+    
+    // Scroll to the new course after a short delay
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
 
@@ -116,7 +122,11 @@ const GPAScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>GPA Predictor</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+      <ScrollView 
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false} 
+        style={styles.scrollView}
+      >
         {!showResults ? (
           <>
             <View style={styles.section}>

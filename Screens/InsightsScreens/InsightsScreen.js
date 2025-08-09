@@ -4,12 +4,12 @@ import { useML } from '../../MLContext';
 import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
 
 export default function InsightsScreen() {
-  const { studentData, predictions } = useML();
+  const { studentData, predictions, predictionHistory } = useML();
   const [insights, setInsights] = useState([]);
 
   useEffect(() => {
     generateInsights();
-  }, [studentData, predictions]);
+  }, [studentData, predictions, predictionHistory]);
 
   const generateInsights = () => {
     const generatedInsights = [];
@@ -77,17 +77,57 @@ export default function InsightsScreen() {
       ],
     });
 
-    if (predictions.length > 0) {
-      const latestPrediction = predictions[0];
+    if (predictionHistory.length > 0) {
+      const latestPrediction = predictionHistory[0];
+      const confidence = latestPrediction.confidence || 75;
+      const predictedGpa = latestPrediction.predicted_gpa || 0;
+      
       generatedInsights.push({
         id: 'prediction-analysis',
         type: 'prediction',
         title: 'AI Prediction Insights',
-        priority: latestPrediction.confidenceScore > 0.8 ? 'high' : 'medium',
+        priority: confidence > 80 ? 'high' : 'medium',
         icon: '🧠',
-        description: `Based on AI analysis, your predicted GPA is ${latestPrediction.predictedGpa.toFixed(2)} with ${(latestPrediction.confidenceScore * 100).toFixed(0)}% confidence.`,
+        description: `Based on AI analysis, your predicted GPA is ${predictedGpa.toFixed(2)} with ${confidence}% confidence.`,
         recommendations: getPredictionRecommendations(latestPrediction),
         actionItems: ['Follow AI recommendations', 'Monitor progress regularly'],
+      });
+
+      // Add prediction trend analysis if we have multiple predictions
+      if (predictionHistory.length > 1) {
+        const trend = analyzePredictionTrend(predictionHistory);
+        generatedInsights.push({
+          id: 'prediction-trend',
+          type: 'trend',
+          title: 'Performance Trend Analysis',
+          priority: trend.direction === 'declining' ? 'high' : 'low',
+          icon: trend.direction === 'improving' ? '📈' : trend.direction === 'declining' ? '📉' : '➡️',
+          description: `Your recent predictions show a ${trend.direction} trend over ${predictionHistory.length} predictions.`,
+          recommendations: trend.recommendations,
+          actionItems: trend.actionItems,
+        });
+      }
+    }
+
+    // Add welcome insight if no data
+    if (studentData.currentGpa === 0 && studentData.grades.length === 0 && predictionHistory.length === 0) {
+      generatedInsights.push({
+        id: 'welcome',
+        type: 'welcome',
+        title: 'Welcome to Academic Insights',
+        priority: 'medium',
+        icon: '👋',
+        description: 'Start using the GPA and CWA predictors to generate personalized academic insights.',
+        recommendations: [
+          'Add your current GPA and course information',
+          'Generate your first prediction',
+          'Track your academic progress over time',
+        ],
+        actionItems: [
+          'Go to GPA Predictor and enter your data',
+          'Add your course grades in the History section',
+          'Check back regularly for updated insights',
+        ],
       });
     }
 
@@ -142,10 +182,53 @@ export default function InsightsScreen() {
 
   const getPredictionRecommendations = (p) => {
     const rec = [];
-    if (p.predictedGpa > studentData.currentGpa) rec.push('Maintain current strategies');
-    else rec.push('Adjust study approach');
-    if (p.confidenceScore < 0.7) rec.push('Add consistent study patterns');
+    const predictedGpa = p.predicted_gpa || 0;
+    const confidence = p.confidence || 75;
+    
+    if (predictedGpa > studentData.currentGpa) {
+      rec.push('Maintain current strategies');
+      rec.push('Your trajectory looks positive');
+    } else {
+      rec.push('Adjust study approach');
+      rec.push('Consider increasing study time');
+    }
+    
+    if (confidence < 70) {
+      rec.push('Add consistent study patterns');
+      rec.push('Provide more academic data for better predictions');
+    }
+    
     return rec;
+  };
+
+  const analyzePredictionTrend = (predictions) => {
+    if (predictions.length < 2) return { direction: 'stable', recommendations: [], actionItems: [] };
+
+    const recent = predictions.slice(0, Math.min(3, predictions.length));
+    const recentAvg = recent.reduce((sum, p) => sum + (p.predicted_gpa || 0), 0) / recent.length;
+    
+    const older = predictions.slice(3, Math.min(6, predictions.length));
+    const olderAvg = older.length > 0 ? older.reduce((sum, p) => sum + (p.predicted_gpa || 0), 0) / older.length : recentAvg;
+
+    let direction = 'stable';
+    let recommendations = [];
+    let actionItems = [];
+
+    if (recentAvg > olderAvg + 0.1) {
+      direction = 'improving';
+      recommendations = ['Keep up the excellent work', 'Continue current study methods'];
+      actionItems = ['Maintain study schedule', 'Consider advanced courses'];
+    } else if (recentAvg < olderAvg - 0.1) {
+      direction = 'declining';
+      recommendations = ['Review and adjust study strategies', 'Seek academic support if needed'];
+      actionItems = ['Schedule advisor meeting', 'Increase study time', 'Join study groups'];
+    } else {
+      direction = 'stable';
+      recommendations = ['Consistent performance', 'Consider ways to improve further'];
+      actionItems = ['Set new academic goals', 'Explore additional learning resources'];
+    }
+
+    return { direction, recommendations, actionItems };
   };
 
   const getPriorityColor = (priority) => {
