@@ -1,0 +1,283 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useML } from '../../MLContext';
+import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
+
+export default function InsightsScreen() {
+  const { studentData, predictions } = useML();
+  const [insights, setInsights] = useState([]);
+
+  useEffect(() => {
+    generateInsights();
+  }, [studentData, predictions]);
+
+  const generateInsights = () => {
+    const generatedInsights = [];
+
+    if (studentData.currentGpa > 0) {
+      const gpaLevel = getGPALevel(studentData.currentGpa);
+      generatedInsights.push({
+        id: 'gpa-performance',
+        type: 'performance',
+        title: 'GPA Performance Analysis',
+        priority: studentData.currentGpa < 3.0 ? 'high' : 'medium',
+        icon: '📈',
+        description: `Your current GPA of ${studentData.currentGpa.toFixed(2)} is classified as ${gpaLevel}.`,
+        recommendations: getGPARecommendations(studentData.currentGpa),
+        actionItems: getGPAActionItems(studentData.currentGpa),
+      });
+    }
+
+    if (studentData.totalCredits > 0) {
+      const progressPercentage = (studentData.totalCredits / 120) * 100;
+      generatedInsights.push({
+        id: 'credit-progress',
+        type: 'progress',
+        title: 'Degree Progress Tracking',
+        priority: 'low',
+        icon: '🎓',
+        description: `You have completed ${studentData.totalCredits} credits (${progressPercentage.toFixed(1)}% of typical degree).`,
+        recommendations: getCreditRecommendations(studentData.totalCredits),
+        actionItems: ['Review graduation requirements', 'Plan next semester courses'],
+      });
+    }
+
+    if (studentData.grades.length > 0) {
+      const gradeDistribution = getGradeDistribution(studentData.grades);
+      generatedInsights.push({
+        id: 'grade-distribution',
+        type: 'analysis',
+        title: 'Grade Distribution Analysis',
+        priority: 'medium',
+        icon: '📊',
+        description: 'Analysis of your grade patterns and subject performance.',
+        recommendations: getGradeDistributionRecommendations(gradeDistribution),
+        actionItems: ['Focus on weak subject areas', 'Maintain strong performance'],
+        data: gradeDistribution,
+      });
+    }
+
+    generatedInsights.push({
+      id: 'study-patterns',
+      type: 'behavioral',
+      title: 'Study Pattern Optimization',
+      priority: 'medium',
+      icon: '⏰',
+      description: 'Recommendations for improving your study habits and time management.',
+      recommendations: [
+        'Maintain consistent study schedule',
+        'Use active learning techniques',
+        'Take regular breaks during study sessions',
+        'Review material within 24 hours of learning',
+      ],
+      actionItems: [
+        'Create a weekly study timetable',
+        'Set up distraction-free study environment',
+        'Use the Pomodoro technique for focused study',
+      ],
+    });
+
+    if (predictions.length > 0) {
+      const latestPrediction = predictions[0];
+      generatedInsights.push({
+        id: 'prediction-analysis',
+        type: 'prediction',
+        title: 'AI Prediction Insights',
+        priority: latestPrediction.confidenceScore > 0.8 ? 'high' : 'medium',
+        icon: '🧠',
+        description: `Based on AI analysis, your predicted GPA is ${latestPrediction.predictedGpa.toFixed(2)} with ${(latestPrediction.confidenceScore * 100).toFixed(0)}% confidence.`,
+        recommendations: getPredictionRecommendations(latestPrediction),
+        actionItems: ['Follow AI recommendations', 'Monitor progress regularly'],
+      });
+    }
+
+    setInsights(generatedInsights);
+  };
+
+  const getGPALevel = (gpa) => {
+    if (gpa >= 3.8) return 'Excellent';
+    if (gpa >= 3.5) return 'Very Good';
+    if (gpa >= 3.0) return 'Good';
+    if (gpa >= 2.5) return 'Satisfactory';
+    return 'Needs Improvement';
+  };
+
+  const getGPARecommendations = (gpa) => {
+    if (gpa >= 3.8) return ['Maintain excellent performance', 'Explore research opportunities'];
+    if (gpa >= 3.5) return ['Continue strong performance', 'Consider graduate prep'];
+    if (gpa >= 3.0) return ['Focus on consistent improvement', 'Improve study techniques'];
+    return ['Seek academic advising', 'Consider tutoring services'];
+  };
+
+  const getGPAActionItems = (gpa) => {
+    if (gpa < 3.0) return ['Schedule advisor meeting', 'Join study groups'];
+    return ['Set higher GPA targets', 'Explore research'];
+  };
+
+  const getCreditRecommendations = (credits) => {
+    if (credits < 30) return ['Focus on core requirements'];
+    if (credits < 60) return ['Begin major-specific courses'];
+    if (credits < 90) return ['Complete major requirements'];
+    return ['Prepare for graduation'];
+  };
+
+  const getGradeDistribution = (grades) => {
+    const distribution = {};
+    grades.forEach(g => {
+      distribution[g.grade] = (distribution[g.grade] || 0) + 1;
+    });
+    return distribution;
+  };
+
+  const getGradeDistributionRecommendations = (dist) => {
+    const recommendations = [];
+    const total = Object.values(dist).reduce((a, b) => a + b, 0);
+    const aGrades = (dist['A+'] || 0) + (dist['A'] || 0);
+    const lowGrades = (dist['C'] || 0) + (dist['D'] || 0) + (dist['F'] || 0);
+
+    if (aGrades / total > 0.6) recommendations.push('Excellent performance');
+    if (lowGrades > 0) recommendations.push('Focus on weak subjects');
+    return recommendations;
+  };
+
+  const getPredictionRecommendations = (p) => {
+    const rec = [];
+    if (p.predictedGpa > studentData.currentGpa) rec.push('Maintain current strategies');
+    else rec.push('Adjust study approach');
+    if (p.confidenceScore < 0.7) rec.push('Add consistent study patterns');
+    return rec;
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return colors.error;
+      case 'medium': return colors.warning;
+      case 'low': return colors.success;
+      default: return colors.textSecondary;
+    }
+  };
+
+  return (
+    <ScrollView style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Academic Insights</Text>
+        <Text style={styles.subtitle}>Personalized recommendations to improve your academic performance</Text>
+      </View>
+
+      {insights.map((item) => (
+        <View key={item.id} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.icon}>{item.icon}</Text>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={[styles.priority, { backgroundColor: getPriorityColor(item.priority) }]}>
+              {item.priority.toUpperCase()}
+            </Text>
+          </View>
+
+          <Text style={styles.description}>{item.description}</Text>
+
+          {item.recommendations?.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Recommendations</Text>
+              {item.recommendations.map((rec, i) => (
+                <Text key={i} style={styles.bullet}>💡 {rec}</Text>
+              ))}
+            </View>
+          )}
+
+          {item.actionItems?.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Action Items</Text>
+              {item.actionItems.map((a, i) => (
+                <Text key={i} style={styles.bullet}>✅ {a}</Text>
+              ))}
+            </View>
+          )}
+
+          {item.data && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Grade Distribution</Text>
+              {Object.entries(item.data).map(([grade, count]) => (
+                <Text key={grade} style={styles.bullet}>{grade}: {count}</Text>
+              ))}
+            </View>
+          )}
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: colors.backgroundSecondary,
+  },
+  header: {
+    backgroundColor: colors.primary,
+    padding: spacing.xl,
+  },
+  title: {
+    fontSize: typography['3xl'],
+    color: colors.background,
+    fontWeight: typography.bold,
+  },
+  subtitle: {
+    fontSize: typography.base,
+    color: colors.background,
+    opacity: 0.9,
+    marginTop: spacing.xs,
+  },
+  card: {
+    backgroundColor: colors.background,
+    margin: spacing.lg,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
+    ...shadows.md,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  icon: {
+    fontSize: typography['2xl'],
+    marginRight: spacing.sm,
+  },
+  cardTitle: {
+    fontSize: typography.lg,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  priority: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.full,
+    fontSize: typography.xs,
+    fontWeight: typography.medium,
+    color: colors.background,
+  },
+  description: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  section: {
+    marginTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  bullet: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+});
