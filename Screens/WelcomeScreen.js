@@ -1,9 +1,20 @@
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, borderRadius, shadows } from '../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../designSystem';
+import { useTheme } from '../ThemeContext';
 
 const HomeScreen = ({navigation}) => {
+  const { colors, isInitialized } = useTheme();
+  
+  // Safety check to ensure theme is ready
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
 
     const handleNavigationToSignup = () => {
         navigation.navigate('SignUp');   
@@ -14,30 +25,30 @@ const HomeScreen = ({navigation}) => {
     };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LinearGradient
           colors={[colors.primary, colors.textPrimary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradient}
         >
-            <View style={styles.content}>
-                <Text style={styles.title}>Grade Predictor</Text>
-                <Text style={styles.subtitle}>Predict your academic future.</Text>
+            <View style={[styles.content, { backgroundColor: colors.background }]}>
+                <Text style={[styles.title, { color: colors.textPrimary }]}>Grade Predictor</Text>
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Predict your academic future.</Text>
                 
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity 
-                        style={styles.primaryButton} 
+                        style={[styles.primaryButton, { backgroundColor: colors.primary }]} 
                         onPress={handleNavigationToSignup}
                     >
-                        <Text style={styles.primaryButtonText}>Get Started</Text>
+                        <Text style={[styles.primaryButtonText, { color: colors.background }]}>Get Started</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
-                        style={styles.secondaryButton} 
+                        style={[styles.secondaryButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]} 
                         onPress={handleNavigationToLogin}
                     >
-                        <Text style={styles.secondaryButtonText}>Sign In</Text>
+                        <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Sign In</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -50,7 +61,6 @@ export default HomeScreen
 
 const styles = StyleSheet.create({
     container:{
-        backgroundColor: colors.background,
         flex: 1,
         alignItems: "center",
     },
@@ -61,7 +71,6 @@ const styles = StyleSheet.create({
     content: {
         height: "100%",
         width: "100%",
-        backgroundColor: colors.background,
         justifyContent: "center",
         alignItems: "center",
         position: "absolute",
@@ -73,13 +82,11 @@ const styles = StyleSheet.create({
     title: {
         fontSize: typography['3xl'],
         fontWeight: typography.bold,
-        color: colors.textPrimary,
         textAlign: "center",
         paddingBottom: spacing.md,
     },
     subtitle: {
         fontSize: typography.lg,
-        color: colors.textSecondary,
         textAlign: "center",
         marginBottom: spacing['2xl'],
     },
@@ -88,7 +95,6 @@ const styles = StyleSheet.create({
         gap: spacing.md,
     },
     primaryButton: {
-        backgroundColor: colors.primary,
         borderRadius: borderRadius.full,
         height: 56,
         justifyContent: "center",
@@ -96,21 +102,17 @@ const styles = StyleSheet.create({
         ...shadows.md,
     },
     primaryButtonText: {
-        color: colors.background,
         fontSize: typography.lg,
         fontWeight: typography.bold,
     },
     secondaryButton: {
-        backgroundColor: colors.backgroundSecondary,
         borderRadius: borderRadius.full,
         height: 56,
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: colors.border,
     },
     secondaryButtonText: {
-        color: colors.textPrimary,
         fontSize: typography.lg,
         fontWeight: typography.semibold,
     },

@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useML } from '../../MLContext';
-import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { useTheme } from '../../ThemeContext';
 
 export default function InsightsScreen() {
   const { studentData, predictions, predictionHistory } = useML();
+  const { colors, isInitialized } = useTheme();
+  
+  // Safety check to ensure theme is ready
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
   const [insights, setInsights] = useState([]);
 
   useEffect(() => {
@@ -240,6 +251,81 @@ export default function InsightsScreen() {
     }
   };
 
+  // Create styles object inside component to access colors
+  const styles = StyleSheet.create({
+    screen: {
+      backgroundColor: colors.backgroundSecondary,
+    },
+    header: {
+      backgroundColor: colors.primary,
+      padding: spacing.xl,
+    },
+    title: {
+      fontSize: typography['3xl'],
+      color: colors.background,
+      fontWeight: typography.bold,
+    },
+    subtitle: {
+      fontSize: typography.base,
+      color: colors.background,
+      opacity: 0.9,
+      marginTop: spacing.xs,
+    },
+    card: {
+      backgroundColor: colors.background,
+      margin: spacing.lg,
+      padding: spacing.xl,
+      borderRadius: borderRadius.lg,
+      ...shadows.md,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    icon: {
+      fontSize: typography['2xl'],
+      marginRight: spacing.sm,
+    },
+    cardTitle: {
+      fontSize: typography.lg,
+      fontWeight: typography.semibold,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    priority: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: borderRadius.full,
+      fontSize: typography.xs,
+      fontWeight: typography.medium,
+      color: colors.background,
+    },
+    description: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+      lineHeight: 20,
+    },
+    section: {
+      marginTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: spacing.md,
+    },
+    sectionTitle: {
+      fontSize: typography.base,
+      fontWeight: typography.semibold,
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    bullet: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+  });
+
   return (
     <ScrollView style={styles.screen}>
       <View style={styles.header}>
@@ -290,77 +376,3 @@ export default function InsightsScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: colors.backgroundSecondary,
-  },
-  header: {
-    backgroundColor: colors.primary,
-    padding: spacing.xl,
-  },
-  title: {
-    fontSize: typography['3xl'],
-    color: colors.background,
-    fontWeight: typography.bold,
-  },
-  subtitle: {
-    fontSize: typography.base,
-    color: colors.background,
-    opacity: 0.9,
-    marginTop: spacing.xs,
-  },
-  card: {
-    backgroundColor: colors.background,
-    margin: spacing.lg,
-    padding: spacing.xl,
-    borderRadius: borderRadius.lg,
-    ...shadows.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  icon: {
-    fontSize: typography['2xl'],
-    marginRight: spacing.sm,
-  },
-  cardTitle: {
-    fontSize: typography.lg,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  priority: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.full,
-    fontSize: typography.xs,
-    fontWeight: typography.medium,
-    color: colors.background,
-  },
-  description: {
-    fontSize: typography.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  section: {
-    marginTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: typography.base,
-    fontWeight: typography.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  bullet: {
-    fontSize: typography.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-});

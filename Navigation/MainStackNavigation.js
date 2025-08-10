@@ -12,17 +12,19 @@ import GPAScreenF from '../Screens/HomeScreens/GPAScreenF';
 import LoginScreen from '../LoginScreen';
 import SignupScreen from '../SignupScreen';
 import { useAuth } from '../AuthContext';
+import { useTheme } from '../ThemeContext';
 
 const Stack = createNativeStackNavigator();
 
 const MainStackNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
+  const { colors, isInitialized } = useTheme();
 
-  // Show loading screen while checking authentication
-  if (loading) {
+  // Show loading screen while checking authentication or theme
+  if (loading || !isInitialized || !colors) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: '#ffffff' }]}>
+        <Text style={[styles.loadingText, { color: '#2563eb' }]}>Loading...</Text>
       </View>
     );
   }
@@ -63,10 +65,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
   },
   loadingText: {
     fontSize: 18,
-    color: '#2563eb',
   },
 })

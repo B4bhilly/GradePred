@@ -1,11 +1,22 @@
 import { StyleSheet, Text, View, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import React, { useState } from 'react';
 import { Feather } from "@expo/vector-icons";
-import { colors, typography, spacing, borderRadius, shadows, sharedStyles } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows, sharedStyles } from '../../designSystem';
 import { useAuth } from '../../AuthContext';
+import { useTheme } from '../../ThemeContext';
 
 const WelcomeScreen = ({navigation}) => {
   const { user, refreshAuth } = useAuth();
+  const { colors, isInitialized } = useTheme();
+  
+  // Safety check to ensure theme is ready
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
   const [refreshing, setRefreshing] = useState(false);
 
   const handleNavigationToGPA = () => {
@@ -28,7 +39,7 @@ const WelcomeScreen = ({navigation}) => {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -39,24 +50,24 @@ const WelcomeScreen = ({navigation}) => {
       }
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Grade Wizard</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Grade Wizard</Text>
         <TouchableOpacity onPress={handleNavigaionToSettings} style={styles.settingsButton}>
           <Feather name="settings" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
       
       <View style={styles.content}>
-        <Text style={styles.greeting}>Hi, {user?.username || 'Student'}</Text>
-        <Text style={styles.description}>Calculate your GPA and CWA with ease. Start by selecting a predictor below.</Text>
+        <Text style={[styles.greeting, { color: colors.textPrimary }]}>Hi, {user?.username || 'Student'}</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>Calculate your GPA and CWA with ease. Start by selecting a predictor below.</Text>
 
-        <TouchableOpacity onPress={handleNavigationToGPA} style={styles.card}>
-          <Text style={styles.cardTitle}>GPA Predictor</Text>
-          <Text style={styles.cardSubtitle}>Calculate your Grade Point Average</Text>
+        <TouchableOpacity onPress={handleNavigationToGPA} style={[styles.card, { backgroundColor: colors.primary }]}>
+          <Text style={[styles.cardTitle, { color: colors.background }]}>GPA Predictor</Text>
+          <Text style={[styles.cardSubtitle, { color: colors.background }]}>Calculate your Grade Point Average</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleNavigationToCWA} style={[styles.card, styles.cardSecondary]}>
-          <Text style={[styles.cardTitle, styles.cardTitleSecondary]}>CWA Predictor</Text>
-          <Text style={[styles.cardSubtitle, styles.cardSubtitleSecondary]}>Calculate your Cumulative Weighted Average</Text>
+        <TouchableOpacity onPress={handleNavigationToCWA} style={[styles.card, { backgroundColor: colors.secondary }]}>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>CWA Predictor</Text>
+          <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>Calculate your Cumulative Weighted Average</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -68,7 +79,6 @@ export default WelcomeScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -81,7 +91,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     textAlign: 'center',
   },
   settingsButton: {
@@ -97,40 +106,35 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: typography['4xl'],
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     marginBottom: spacing.md,
   },
   description: {
     fontSize: typography.base,
-    color: colors.textSecondary,
     marginBottom: spacing['2xl'],
     lineHeight: 24,
   },
   card: {
-    backgroundColor: colors.primary,
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     marginBottom: spacing.lg,
     ...shadows.md,
   },
   cardSecondary: {
-    backgroundColor: colors.secondary,
+    // backgroundColor will be applied dynamically
   },
   cardTitle: {
     fontSize: typography.xl,
     fontWeight: typography.bold,
-    color: colors.background,
     marginBottom: spacing.xs,
   },
   cardTitleSecondary: {
-    color: colors.textPrimary,
+    // color will be applied dynamically
   },
   cardSubtitle: {
     fontSize: typography.sm,
-    color: colors.background,
     opacity: 0.9,
   },
   cardSubtitleSecondary: {
-    color: colors.textSecondary,
+    // color will be applied dynamically
   },
 });

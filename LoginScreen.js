@@ -1,10 +1,21 @@
 import React, { useState } from "react";
 import {View, Text,TextInput,TouchableOpacity,StyleSheet,ImageBackground,Image, Pressable, Alert, ActivityIndicator,} from "react-native";
-import { colors, typography, spacing, borderRadius, shadows } from './designSystem';
+import { typography, spacing, borderRadius, shadows } from './designSystem';
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
 
 export default function LoginScreen({navigation}) {
     const { login, loading } = useAuth();
+    const { colors, isInitialized } = useTheme();
+    
+    // Safety check to ensure theme is ready
+    if (!isInitialized || !colors) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+                <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+            </View>
+        );
+    }
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -34,7 +45,7 @@ export default function LoginScreen({navigation}) {
     };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
        <View style={styles.imageWrapper}>
             <Image
@@ -43,12 +54,12 @@ export default function LoginScreen({navigation}) {
             />
         </View>
 
-        <Text style={styles.heading}>Welcome back</Text>
+        <Text style={[styles.heading, { color: colors.textPrimary }]}>Welcome back</Text>
 
         <View style={styles.inputGroup}>
           <TextInput
             placeholder="Email"
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
             placeholderTextColor={colors.textSecondary}
             value={formData.email}
             onChangeText={(text) => handleInputChange('email', text)}
@@ -61,7 +72,7 @@ export default function LoginScreen({navigation}) {
           <TextInput
             placeholder="Password"
             secureTextEntry
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
             placeholderTextColor={colors.textSecondary}
             value={formData.password}
             onChangeText={(text) => handleInputChange('password', text)}
@@ -72,20 +83,20 @@ export default function LoginScreen({navigation}) {
         <View style={styles.buttonWrapper}>
           <TouchableOpacity 
             onPress={handleLogin} 
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={colors.background} />
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={[styles.buttonText, { color: colors.background }]}>Login</Text>
             )}
           </TouchableOpacity>
         </View>
 
         <Pressable onPress={handleNavigationToSignup}>
-            <Text style={styles.signupText}>
-            Don't have an account? <Text style={styles.signupLink}>Sign up</Text>
+            <Text style={[styles.signupText, { color: colors.textSecondary }]}>
+            Don't have an account? <Text style={[styles.signupLink, { color: colors.primary }]}>Sign up</Text>
             </Text>
         </Pressable>
       </View>
@@ -95,7 +106,6 @@ export default function LoginScreen({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: "space-between",
   },
   content: {
@@ -114,7 +124,6 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: typography.xl,
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     paddingTop: spacing.xl,
     paddingBottom: spacing.md,
   },
@@ -123,19 +132,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   input: {
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.lg,
     height: 56,
     paddingHorizontal: spacing.lg,
     fontSize: typography.base,
-    color: colors.textPrimary,
   },
   buttonWrapper: {
     marginVertical: spacing.lg,
     alignItems: "center",
   },
   button: {
-    backgroundColor: colors.primary,
     borderRadius: borderRadius.full,
     height: 48,
     width: "60%",
@@ -147,18 +153,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.background,
     fontWeight: typography.bold,
     fontSize: typography.base,
   },
   signupText: {
     textAlign: "center",
-    color: colors.textSecondary,
     fontSize: typography.sm,
     marginBottom: spacing.sm,
   },
   signupLink: {
     textDecorationLine: "underline",
-    color: colors.primary,
   },
 });

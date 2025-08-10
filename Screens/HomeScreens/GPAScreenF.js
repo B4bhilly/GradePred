@@ -1,33 +1,45 @@
 import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native'
 import React from 'react'
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { useTheme } from '../../ThemeContext';
 
 const GPAScreenF = ({navigation}) => {
+  const { colors, isInitialized } = useTheme();
+  
+  // Safety check to ensure colors are available
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
+  
   return (
-    <View style={styles.container}>
-        <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Ionicons name="calculator" size={24} color={colors.textPrimary} />
-            <Text style={styles.headerTitle}>GPA Predictor</Text>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>GPA Predictor</Text>
         </View>
 
-        <View style={styles.content}>
-            <Text style={styles.title}>Academic Data Input</Text>
-            <Text style={styles.subtitle}>Enter your current academic information for prediction.</Text>
+        <View style={[styles.content, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Academic Data Input</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Enter your current academic information for prediction.</Text>
             
             <View style={styles.inputRow}>
                 <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Current GPA*</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Current GPA*</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                         placeholder="E.g. 3.2"
                         value={''}
                     />
                 </View>
                 <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Previous Semester GPA*</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Previous Semester GPA*</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                         placeholder="E.g. 3.0"
                         value={''}
                     />
@@ -35,35 +47,37 @@ const GPAScreenF = ({navigation}) => {
             </View>
             
             <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Credit Hours This Semester*</Text>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Credit Hours This Semester*</Text>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                     placeholder="E.g. 15"
                     value={''}
                 />
             </View>
             
             <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Study Hours per Week*</Text>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Study Hours per Week*</Text>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                     placeholder="E.g. 15"
                     value={''}
+                    placeholderTextColor={colors.textSecondary}
                 />
             </View>
             
             <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Attendance Percentage</Text>
+                <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Attendance Percentage</Text>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                     placeholder="E.g. 90"
                     value={''}
+                    placeholderTextColor={colors.textSecondary}
                 />
             </View>
 
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonText}>Predict GPA</Text>
+                <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.buttonText, { color: colors.background }]}>Predict GPA</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -76,7 +90,6 @@ export default GPAScreenF
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,        
     },
     header: {
         flexDirection: 'row',
@@ -86,18 +99,15 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.lg,
         paddingHorizontal: spacing.lg,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: colors.border,
     },
     headerTitle: {
         fontSize: typography['2xl'],
         fontWeight: typography.bold,
-        color: colors.textPrimary,
         marginLeft: spacing.sm,
     },
     content: {
         flex: 1,
         padding: spacing.lg,
-        backgroundColor: colors.backgroundSecondary,
         margin: spacing.lg,
         borderRadius: borderRadius.lg,
         ...shadows.md,
@@ -105,13 +115,11 @@ const styles = StyleSheet.create({
     title: {
         fontSize: typography['2xl'],
         fontWeight: typography.bold,
-        color: colors.textPrimary,
         textAlign: 'center',
         marginBottom: spacing.sm,
     },
     subtitle: {
         fontSize: typography.base,
-        color: colors.textSecondary,
         textAlign: 'center',
         marginBottom: spacing.xl,
     },
@@ -127,17 +135,14 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: typography.sm,
         fontWeight: typography.medium,
-        color: colors.textPrimary,
         marginBottom: spacing.xs,
     },
     input: {
         borderWidth: 1,
-        borderColor: colors.border,
         borderRadius: borderRadius.md,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
         fontSize: typography.base,
-        backgroundColor: colors.background,
         minHeight: 48,
         marginBottom: spacing.md,
     },
@@ -146,7 +151,6 @@ const styles = StyleSheet.create({
         marginTop: spacing.xl,
     },
     button: {
-        backgroundColor: colors.primary,
         paddingVertical: spacing.md,
         paddingHorizontal: spacing.xl,
         borderRadius: borderRadius.md,
@@ -156,7 +160,6 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     buttonText: {
-        color: colors.background,
         fontWeight: typography.semibold,
         fontSize: typography.base,
     },

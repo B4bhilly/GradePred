@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AntDesign, Feather, FontAwesome6, MaterialIcons } from '@expo/vector-icons';
@@ -6,11 +6,23 @@ import HomeScreen from './WelcomeScreen';
 import CalendarScreen from './HistoryScreens/HistoryScreen';
 import ProfileScreen from './InsightsScreens/InsightsScreen'; 
 import WelcomeScreen from './HomeScreens/GradePredScreen';
-import { colors, typography, spacing } from '../designSystem';
+import { typography, spacing } from '../designSystem';
+import { useTheme } from '../ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
+  const { colors: themeColors, isInitialized } = useTheme();
+  
+  // Safety check to ensure theme is ready
+  if (!isInitialized || !themeColors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -23,12 +35,12 @@ const MainTabNavigator = () => {
             return <MaterialIcons name="insights" size={size} color={color} />;
           }
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: themeColors.primary,
+        tabBarInactiveTintColor: themeColors.textSecondary,
         tabBarStyle: {
-          backgroundColor: colors.background,
+          backgroundColor: themeColors.background,
           borderTopWidth: 1,
-          borderTopColor: colors.border,
+          borderTopColor: themeColors.border,
           paddingBottom: spacing.sm,
           paddingTop: spacing.sm,
           height: 60,

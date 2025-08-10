@@ -1,12 +1,23 @@
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import React, { useState, useRef } from 'react';
 import { AntDesign, FontAwesome5, Entypo, Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../../designSystem';
 import { useML } from '../../MLContext';
+import { useTheme } from '../../ThemeContext';
 
 const CWAScreen = ({ navigation }) => {
   const { generatePrediction, loading, modelPerformance } = useML();
+  const { colors, isInitialized } = useTheme();
   const scrollViewRef = useRef();
+  
+  // Safety check to ensure colors are available
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
   
   const [courses, setCourses] = useState([
     { id: Date.now(), name: '', grade: '', credit: '' },
@@ -114,12 +125,12 @@ const CWAScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <AntDesign name="arrowleft" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>CWA Predictor</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>CWA Predictor</Text>
       </View>
 
       <ScrollView 
@@ -130,23 +141,25 @@ const CWAScreen = ({ navigation }) => {
         {!showResults ? (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Academic Information</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Academic Information</Text>
               <View style={styles.inputRow}>  
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Current CWA*</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Current CWA*</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                     placeholder="E.g. 65.5"
+                    placeholderTextColor={colors.textSecondary}
                     keyboardType="numeric"
                     value={cwaInputs.currentCwa}
                     onChangeText={(text) => updateCwaInput('currentCwa', text)}
                   />
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Previous Semester CWA*</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Previous Semester CWA*</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                     placeholder="E.g. 62.0"
+                    placeholderTextColor={colors.textSecondary}
                     keyboardType="numeric"
                     value={cwaInputs.previousCwa}
                     onChangeText={(text) => updateCwaInput('previousCwa', text)}
@@ -156,20 +169,22 @@ const CWAScreen = ({ navigation }) => {
               
                              <View style={styles.inputRow}>
                  <View style={styles.inputGroup}>
-                   <Text style={styles.inputLabel}>Study Hours per Week</Text>
+                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Study Hours per Week</Text>
                    <TextInput
-                     style={styles.input}
+                     style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                      placeholder="E.g. 15"
+                     placeholderTextColor={colors.textSecondary}
                      keyboardType="numeric"
                      value={cwaInputs.studyHours}
                      onChangeText={(text) => updateCwaInput('studyHours', text)}
                    />
                  </View>
                  <View style={styles.inputGroup}>
-                   <Text style={styles.inputLabel}>Attendance %</Text>
+                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Attendance %</Text>
                    <TextInput
-                     style={styles.input}
+                     style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                      placeholder="E.g. 90"
+                     placeholderTextColor={colors.textSecondary}
                      keyboardType="numeric"
                      value={cwaInputs.attendance}
                      onChangeText={(text) => updateCwaInput('attendance', text)}
@@ -179,20 +194,22 @@ const CWAScreen = ({ navigation }) => {
 
                <View style={styles.inputRow}>
                  <View style={styles.inputGroup}>
-                   <Text style={styles.inputLabel}>Assignment Submission %</Text>
+                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Assignment Submission %</Text>
                    <TextInput
-                     style={styles.input}
+                     style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                      placeholder="E.g. 95"
+                     placeholderTextColor={colors.textSecondary}
                      keyboardType="numeric"
                      value={cwaInputs.assignmentSubmission}
                      onChangeText={(text) => updateCwaInput('assignmentSubmission', text)}
                    />
                  </View>
                  <View style={styles.inputGroup}>
-                   <Text style={styles.inputLabel}>Total Credits Completed</Text>
+                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Total Credits Completed</Text>
                    <TextInput
-                     style={styles.input}
+                     style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                      placeholder="E.g. 45"
+                     placeholderTextColor={colors.textSecondary}
                      keyboardType="numeric"
                      value={cwaInputs.totalCredits}
                      onChangeText={(text) => updateCwaInput('totalCredits', text)}
@@ -202,11 +219,11 @@ const CWAScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Current Courses</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Current Courses</Text>
               {courses.map((course, index) => (
-                <View key={course.id} style={styles.courseCard}>
+                <View key={course.id} style={[styles.courseCard, { backgroundColor: colors.backgroundSecondary }]}>
                   <View style={styles.courseHeader}>
-                    <Text style={styles.courseTitle}>Course {index + 1}</Text>
+                    <Text style={[styles.courseTitle, { color: colors.textPrimary }]}>Course {index + 1}</Text>
                     {courses.length > 1 && (
                       <TouchableOpacity onPress={() => removeCourse(course.id)} style={styles.removeButton}>
                         <Entypo name="cross" size={20} color={colors.error} />
@@ -214,30 +231,33 @@ const CWAScreen = ({ navigation }) => {
                     )}
                   </View>
 
-                  <Text style={styles.inputLabel}>Course Name</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Course Name</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                     placeholder="E.g. Advanced Calculus"
+                    placeholderTextColor={colors.textSecondary}
                     value={course.name}
                     onChangeText={(text) => updateCourse(course.id, 'name', text)}
                   />
 
                   <View style={styles.inputRow}>
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Grade</Text>
+                      <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Grade</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                         placeholder="E.g. 75"
+                        placeholderTextColor={colors.textSecondary}
                         keyboardType="numeric"
                         value={course.grade}
                         onChangeText={(text) => updateCourse(course.id, 'grade', text)}
                       />
                     </View>
                     <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Credit Hours</Text>
+                      <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Credit Hours</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background }]}
                         placeholder="E.g. 4"
+                        placeholderTextColor={colors.textSecondary}
                         keyboardType="numeric"
                         value={course.credit}
                         onChangeText={(text) => updateCourse(course.id, 'credit', text)}
@@ -250,26 +270,26 @@ const CWAScreen = ({ navigation }) => {
           </>
         ) : (
           <View style={styles.resultsContainer}>
-            <View style={styles.resultCard}>
+            <View style={[styles.resultCard, { backgroundColor: colors.backgroundSecondary }]}>
               <Ionicons name="analytics" size={48} color={colors.primary} />
-              <Text style={styles.resultTitle}>CWA Prediction</Text>
+              <Text style={[styles.resultTitle, { color: colors.textPrimary }]}>CWA Prediction</Text>
               
               <View style={styles.predictionContainer}>
-                <Text style={styles.predictionLabel}>Predicted CWA</Text>
-                <Text style={styles.predictionValue}>
+                <Text style={[styles.predictionLabel, { color: colors.textSecondary }]}>Predicted CWA</Text>
+                <Text style={[styles.predictionValue, { color: colors.textPrimary }]}>
                   {prediction?.predicted_gpa ? (prediction.predicted_gpa * 25).toFixed(1) : 'N/A'}
                 </Text>
               </View>
               
               <View style={styles.confidenceContainer}>
-                <Text style={styles.confidenceLabel}>Confidence Level</Text>
-                <Text style={styles.confidenceValue}>{prediction?.confidence || 0}%</Text>
+                <Text style={[styles.confidenceLabel, { color: colors.textSecondary }]}>Confidence Level</Text>
+                <Text style={[styles.confidenceValue, { color: colors.textPrimary }]}>{prediction?.confidence || 0}%</Text>
               </View>
               
               <View style={styles.insightsContainer}>
-                <Text style={styles.insightsTitle}>Academic Insights</Text>
+                <Text style={[styles.insightsTitle, { color: colors.textPrimary }]}>Academic Insights</Text>
                 {prediction?.insights?.map((insight, index) => (
-                  <Text key={index} style={styles.insightsText}>• {insight}</Text>
+                  <Text key={index} style={[styles.insightsText, { color: colors.textSecondary }]}>• {insight}</Text>
                 ))}
               </View>
             </View>
@@ -278,7 +298,7 @@ const CWAScreen = ({ navigation }) => {
       </ScrollView>
       
       {!showResults && (
-        <TouchableOpacity onPress={addCourse} style={styles.fab}>
+        <TouchableOpacity onPress={addCourse} style={[styles.fab, { backgroundColor: colors.primary }]}>
           <FontAwesome5 name="plus" size={20} color={colors.background} />
         </TouchableOpacity>
       )}
@@ -287,18 +307,18 @@ const CWAScreen = ({ navigation }) => {
         {!showResults ? (
           <TouchableOpacity 
             onPress={handlePredictCWA} 
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={colors.background} />
             ) : (
-              <Text style={styles.buttonText}>Predict CWA</Text>
+              <Text style={[styles.buttonText, { color: colors.background }]}>Predict CWA</Text>
             )}
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={resetForm} style={styles.button}>
-            <Text style={styles.buttonText}>New Prediction</Text>
+          <TouchableOpacity onPress={resetForm} style={[styles.button, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.buttonText, { color: colors.background }]}>New Prediction</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -311,7 +331,6 @@ export default CWAScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -328,7 +347,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     textAlign: 'center',
   },
   scrollView: {
@@ -341,11 +359,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: typography.lg,
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     marginBottom: spacing.md,
   },
   courseCard: {
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -360,7 +376,6 @@ const styles = StyleSheet.create({
   courseTitle: {
     fontSize: typography.lg,
     fontWeight: typography.bold,
-    color: colors.textPrimary,
   },
   removeButton: {
     padding: spacing.xs,
@@ -368,17 +383,14 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: typography.sm,
     fontWeight: typography.medium,
-    color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: typography.base,
-    backgroundColor: colors.background,
     minHeight: 48,
     marginBottom: spacing.md,
   },
@@ -398,7 +410,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.lg,
@@ -410,7 +421,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   button: {
-    backgroundColor: colors.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.md,
@@ -423,7 +433,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.background,
     fontWeight: typography.semibold,
     fontSize: typography.base,
   },
@@ -433,7 +442,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   secondaryButton: {
-    backgroundColor: colors.backgroundSecondary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.md,
@@ -442,10 +450,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   secondaryButtonText: {
-    color: colors.textPrimary,
     fontWeight: typography.semibold,
     fontSize: typography.base,
   },
@@ -454,7 +460,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   resultCard: {
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     alignItems: 'center',
@@ -463,7 +468,6 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     marginTop: spacing.md,
     marginBottom: spacing.xl,
   },
@@ -473,13 +477,11 @@ const styles = StyleSheet.create({
   },
   predictionLabel: {
     fontSize: typography.base,
-    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   predictionValue: {
     fontSize: typography['4xl'],
     fontWeight: typography.bold,
-    color: colors.primary,
   },
   confidenceContainer: {
     alignItems: 'center',
@@ -487,13 +489,11 @@ const styles = StyleSheet.create({
   },
   confidenceLabel: {
     fontSize: typography.base,
-    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   confidenceValue: {
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
-    color: colors.primary,
   },
   insightsContainer: {
     width: '100%',
@@ -501,12 +501,10 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: typography.lg,
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   insightsText: {
     fontSize: typography.base,
-    color: colors.textSecondary,
     lineHeight: 24,
     marginBottom: spacing.xs,
   },

@@ -1,5 +1,9 @@
 // Design System for GradePred App
-export const colors = {
+// Note: Colors are now managed through ThemeContext for dynamic theming
+// These are kept for backward compatibility but should not be used in new code
+
+// Light theme colors (default) - moved to ThemeContext
+export const lightColors = {
   primary: '#2563eb',
   primaryLight: '#3b82f6',
   secondary: '#f59e0b',
@@ -12,7 +16,34 @@ export const colors = {
   error: '#ef4444',
   border: '#e5e7eb',
   cardShadow: 'rgba(0, 0, 0, 0.1)',
+  card: '#ffffff',
+  inputBackground: '#ffffff',
+  switchTrack: '#e5e7eb',
+  switchThumb: '#ffffff',
 };
+
+// Dark theme colors - moved to ThemeContext
+export const darkColors = {
+  primary: '#3b82f6',
+  primaryLight: '#60a5fa',
+  secondary: '#fbbf24',
+  background: '#0f172a',
+  backgroundSecondary: '#1e293b',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5e1',
+  success: '#22c55e',
+  warning: '#fbbf24',
+  error: '#f87171',
+  border: '#334155',
+  cardShadow: 'rgba(0, 0, 0, 0.3)',
+  card: '#1e293b',
+  inputBackground: '#334155',
+  switchTrack: '#475569',
+  switchThumb: '#3b82f6',
+};
+
+// Legacy colors export for backward compatibility
+export const colors = lightColors;
 
 export const typography = {
   xs: 12, sm: 14, base: 16, lg: 18, xl: 20, '2xl': 24, '3xl': 28, '4xl': 32,
@@ -29,14 +60,12 @@ export const borderRadius = {
 
 export const shadows = {
   md: {
-    shadowColor: colors.cardShadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   lg: {
-    shadowColor: colors.cardShadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -45,7 +74,7 @@ export const shadows = {
 };
 
 export const sharedStyles = {
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -57,11 +86,9 @@ export const sharedStyles = {
     flex: 1,
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
-    color: colors.textPrimary,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginHorizontal: spacing.lg,
@@ -69,7 +96,6 @@ export const sharedStyles = {
     ...shadows.md,
   },
   button: {
-    backgroundColor: colors.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.md,
@@ -83,29 +109,25 @@ export const sharedStyles = {
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: typography.base,
-    backgroundColor: colors.background,
     minHeight: 48,
   },
   title: {
     fontSize: typography['3xl'],
     fontWeight: typography.bold,
-    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: typography.base,
-    color: colors.textSecondary,
     marginTop: spacing.xs,
   },
 };
 
-export const getGPAColor = (gpa) => {
-  if (gpa >= 3.5) return colors.success;
-  if (gpa >= 3.0) return colors.warning;
-  if (gpa >= 2.5) return colors.secondary;
-  return colors.error;
+export const getGPAColor = (gpa, themeColors) => {
+  if (gpa >= 3.5) return themeColors.success;
+  if (gpa >= 3.0) return themeColors.warning;
+  if (gpa >= 2.5) return themeColors.secondary;
+  return themeColors.error;
 }; 

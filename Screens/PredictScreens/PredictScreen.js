@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useML } from '../../MLContext';
-import { colors, typography, spacing, borderRadius, shadows, sharedStyles } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows, sharedStyles } from '../../designSystem';
+import { useTheme } from '../../ThemeContext';
 
 export default function PredictScreen() {
   const { generatePrediction, studentData, loading } = useML();
+  const { colors, isInitialized } = useTheme();
+  
+  // Safety check to ensure theme is ready
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
   const [formData, setFormData] = useState({
     targetGpa: '',
     additionalCredits: '',

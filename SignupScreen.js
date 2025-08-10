@@ -12,11 +12,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { AntDesign, Feather } from '@expo/vector-icons';
-import { colors, typography, spacing, borderRadius, shadows } from './designSystem';
+import { typography, spacing, borderRadius, shadows } from './designSystem';
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
 
 export default function SignUpScreen({navigation}) {
   const { signup, loading } = useAuth();
+  const { colors, isInitialized } = useTheme();
+  
+  // Safety check to ensure theme is ready
+  if (!isInitialized || !colors) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
+        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+      </View>
+    );
+  }
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -48,7 +59,7 @@ export default function SignUpScreen({navigation}) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Background image */}
       <ImageBackground
         source={require('./assets/images/dark1.png')}
@@ -58,7 +69,7 @@ export default function SignUpScreen({navigation}) {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Sign Up</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Sign Up</Text>
       </View>
 
       {/* Input Fields */}
@@ -67,7 +78,7 @@ export default function SignUpScreen({navigation}) {
           <TextInput
             placeholder={key === 'confirmPassword' ? 'Confirm Password' : key.charAt(0).toUpperCase() + key.slice(1)}
             secureTextEntry={key.includes('password')}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
             value={form[key]}
             onChangeText={text => handleChange(key, text)}
             placeholderTextColor={colors.textSecondary}
@@ -81,27 +92,27 @@ export default function SignUpScreen({navigation}) {
       <View style={styles.buttonWrapper}>
         <TouchableOpacity 
           onPress={handleSignup} 
-          style={[styles.primaryButton, loading && styles.buttonDisabled]}
+          style={[styles.primaryButton, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color={colors.background} />
           ) : (
-            <Text style={styles.primaryButtonText}>Sign Up</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.background }]}>Sign Up</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {/* Google Button */}
       <View style={styles.buttonWrapper}>
-        <TouchableOpacity style={styles.googleButton}>
+        <TouchableOpacity style={[styles.googleButton, { backgroundColor: colors.backgroundSecondary }]}>
           <AntDesign name="google" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       {/* Footer */}
       <Pressable onPress={handleNavigationToLogin}>
-        <Text style={styles.footerText}>Already have an account? Sign In</Text>
+        <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? Sign In</Text>
       </Pressable>
     </SafeAreaView>
   );
@@ -110,7 +121,6 @@ export default function SignUpScreen({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   banner: {
     width: '100%',
@@ -128,7 +138,6 @@ const styles = StyleSheet.create({
     fontSize: typography.xl,
     fontWeight: typography.bold,
     textAlign: 'center',
-    color: colors.textPrimary,
     marginRight: spacing['2xl'], // space for the icon
   },
   inputWrapper: {
@@ -139,9 +148,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.backgroundSecondary,
     fontSize: typography.base,
-    color: colors.textPrimary,
   },
   buttonWrapper: {
     marginHorizontal: spacing.lg,
@@ -149,7 +156,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: colors.primary,
     borderRadius: borderRadius.full,
     height: 48,
     width: '60%',
@@ -161,12 +167,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: colors.background,
     fontWeight: typography.bold,
     fontSize: typography.base,
   },
   googleButton: {
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.full,
     height: 48,
     width: 48,
@@ -176,7 +180,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     textAlign: 'center',
-    color: colors.textSecondary,
     textDecorationLine: 'underline',
     fontSize: typography.sm,
     paddingTop: spacing.md,
