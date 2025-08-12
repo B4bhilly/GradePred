@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native'
 import React from 'react'
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { typography, spacing, borderRadius, shadows } from '../../designSystem';
 import { useTheme } from '../../ThemeContext';
 

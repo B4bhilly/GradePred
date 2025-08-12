@@ -48,10 +48,12 @@ export const colors = lightColors;
 export const typography = {
   xs: 12, sm: 14, base: 16, lg: 18, xl: 20, '2xl': 24, '3xl': 28, '4xl': 32,
   normal: '400', medium: '500', semibold: '600', bold: '700',
+  h1: 32, h2: 28, h3: 24, body1: 16, body2: 14, caption: 12,
 };
 
 export const spacing = {
   xs: 4, sm: 8, md: 12, lg: 16, xl: 20, '2xl': 24, '3xl': 32,
+  xsmall: 4, small: 8, medium: 12, large: 16, xlarge: 24,
 };
 
 export const borderRadius = {
@@ -59,6 +61,12 @@ export const borderRadius = {
 };
 
 export const shadows = {
+  small: {
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   md: {
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

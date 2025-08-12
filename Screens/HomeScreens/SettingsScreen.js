@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View, TouchableOpacity, Switch, Alert } from 'react-native';
 import React, { useState } from 'react';
-import { AntDesign, Feather, SimpleLineIcons, Ionicons } from '@expo/vector-icons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Feather from 'react-native-vector-icons/Feather';
+import SimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { typography, spacing, borderRadius } from '../../designSystem';
 import { useAuth } from '../../AuthContext';
 import { useTheme } from '../../ThemeContext';
@@ -175,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   headerTitle: {
-    flex: 1,
+    flex: 0.8,
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
     textAlign: 'center',

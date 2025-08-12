@@ -1,7 +1,10 @@
 import { StyleSheet, View, Text } from 'react-native';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AntDesign, Feather, FontAwesome6, MaterialIcons } from '@expo/vector-icons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Feather from 'react-native-vector-icons/Feather';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import HomeScreen from './WelcomeScreen';
 import CalendarScreen from './HistoryScreens/HistoryScreen';
 import ProfileScreen from './InsightsScreens/InsightsScreen'; 

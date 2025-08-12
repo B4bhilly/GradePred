@@ -1,6 +1,9 @@
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import React, { useState, useRef } from 'react';
-import { AntDesign, FontAwesome5, Entypo, Ionicons } from '@expo/vector-icons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import Entypo from 'react-native-vector-icons/Entypo';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { typography, spacing, borderRadius, shadows } from '../../designSystem';
 import { useML } from '../../MLContext';
 import { useTheme } from '../../ThemeContext';

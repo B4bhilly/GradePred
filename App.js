@@ -21,6 +21,8 @@ export default function App() {
 const AppContent = () => {
   const { colors, isInitialized } = useTheme();
   
+  console.log('AppContent - isInitialized:', isInitialized, 'colors:', colors);
+  
   // Show loading screen while theme is initializing
   if (!isInitialized) {
     return (
@@ -31,6 +33,8 @@ const AppContent = () => {
       </SafeAreaView>
     );
   }
+  
+  console.log('AppContent - rendering MainStackNavigator');
   
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>

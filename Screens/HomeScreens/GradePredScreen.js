@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import React, { useState } from 'react';
-import { Feather } from "@expo/vector-icons";
+import Feather from 'react-native-vector-icons/Feather';
 import { typography, spacing, borderRadius, shadows, sharedStyles } from '../../designSystem';
 import { useAuth } from '../../AuthContext';
 import { useTheme } from '../../ThemeContext';

@@ -10,11 +10,33 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
-import { AntDesign, Feather } from '@expo/vector-icons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Feather from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { typography, spacing, borderRadius, shadows } from './designSystem';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
+
+// Email validation function
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Password strength validation
+const getPasswordStrength = (password) => {
+  let strength = 0;
+  if (password.length >= 8) strength++;
+  if (/[a-z]/.test(password)) strength++;
+  if (/[A-Z]/.test(password)) strength++;
+  if (/[0-9]/.test(password)) strength++;
+  if (/[^A-Za-z0-9]/.test(password)) strength++;
+  return strength;
+};
 
 export default function SignUpScreen({navigation}) {
   const { signup, loading } = useAuth();
@@ -28,92 +50,266 @@ export default function SignUpScreen({navigation}) {
       </View>
     );
   }
+  
   const [form, setForm] = useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
   const handleChange = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
+    
+    // Clear errors when user types
+    if (key === 'email') setEmailError('');
+    if (key === 'password') setPasswordError('');
+    if (key === 'confirmPassword') setConfirmPasswordError('');
   };
 
   const handleNavigationToLogin = () => {
     navigation.navigate('Login');   
   }
 
+  const validateForm = () => {
+    let isValid = true;
+    
+    // Clear previous errors
+    setEmailError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
+    
+    // Username validation
+    if (!form.username.trim()) {
+      Alert.alert('Error', 'Username is required');
+      isValid = false;
+    }
+    
+    // Email validation
+    if (!form.email.trim()) {
+      setEmailError('Email is required');
+      isValid = false;
+    } else if (!isValidEmail(form.email)) {
+      setEmailError('Please enter a valid email address');
+      isValid = false;
+    }
+    
+    // Password validation
+    if (!form.password) {
+      setPasswordError('Password is required');
+      isValid = false;
+    } else if (form.password.length < 8) {
+      setPasswordError('Password must be at least 8 characters long');
+      isValid = false;
+    } else if (getPasswordStrength(form.password) < 3) {
+      setPasswordError('Password is too weak. Include uppercase, lowercase, numbers, and symbols');
+      isValid = false;
+    }
+    
+    // Confirm password validation
+    if (!form.confirmPassword) {
+      setConfirmPasswordError('Please confirm your password');
+      isValid = false;
+    } else if (form.password !== form.confirmPassword) {
+      setConfirmPasswordError('Passwords do not match');
+      isValid = false;
+    }
+    
+    return isValid;
+  };
+
   const handleSignup = async () => {
-    const result = await signup(
-      form.username, 
-      form.email, 
-      form.password, 
-      form.confirmPassword
-    );
+    if (!validateForm()) return;
+    
+    const result = await signup(form.email, form.password, form.username);
     
     if (result.success) {
-      navigation.navigate('MainTab');
+      console.log('Signup result success, attempting navigation to MainTab');
+      // Add a small delay to ensure state is updated
+      setTimeout(() => {
+        console.log('Navigating to MainTab now');
+        navigation.navigate('MainTab');
+      }, 100);
     } else {
       Alert.alert('Signup Failed', result.error);
     }
   };
+  
+  const getPasswordStrengthColor = () => {
+    const strength = getPasswordStrength(form.password);
+    if (strength >= 4) return colors.success;
+    if (strength >= 3) return colors.warning;
+    return colors.error;
+  };
+
+  const getPasswordStrengthText = () => {
+    const strength = getPasswordStrength(form.password);
+    if (strength >= 4) return 'Strong';
+    if (strength >= 3) return 'Good';
+    if (strength >= 2) return 'Fair';
+    return 'Weak';
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Background image */}
-      <ImageBackground
-        source={require('./assets/images/dark1.png')}
-        style={styles.banner}
-        imageStyle={styles.bannerImage}
-      />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Sign Up</Text>
-      </View>
-
-      {/* Input Fields */}
-      {['username', 'email', 'password', 'confirmPassword'].map(key => (
-        <View key={key} style={styles.inputWrapper}>
-          <TextInput
-            placeholder={key === 'confirmPassword' ? 'Confirm Password' : key.charAt(0).toUpperCase() + key.slice(1)}
-            secureTextEntry={key.includes('password')}
-            style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
-            value={form[key]}
-            onChangeText={text => handleChange(key, text)}
-            placeholderTextColor={colors.textSecondary}
-            autoCapitalize={key === 'email' ? 'none' : 'words'}
-            keyboardType={key === 'email' ? 'email-address' : 'default'}
-          />
-        </View>
-      ))}
-
-      {/* Sign Up Button */}
-      <View style={styles.buttonWrapper}>
-        <TouchableOpacity 
-          onPress={handleSignup} 
-          style={[styles.primaryButton, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
-          disabled={loading}
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {loading ? (
-            <ActivityIndicator color={colors.background} />
-          ) : (
-            <Text style={[styles.primaryButtonText, { color: colors.background }]}>Sign Up</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          {/* Background image */}
+          <ImageBackground
+            source={require('./assets/images/dark1.png')}
+            style={styles.banner}
+            imageStyle={styles.bannerImage}
+          />
 
-      {/* Google Button */}
-      <View style={styles.buttonWrapper}>
-        <TouchableOpacity style={[styles.googleButton, { backgroundColor: colors.backgroundSecondary }]}>
-          <AntDesign name="google" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-      </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Sign Up</Text>
+          </View>
 
-      {/* Footer */}
-      <Pressable onPress={handleNavigationToLogin}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? Sign In</Text>
-      </Pressable>
+          {/* Username Input */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholder="Username"
+              style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
+              value={form.username}
+              onChangeText={text => handleChange('username', text)}
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+
+          {/* Email Input */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholder="Email"
+              style={[
+                styles.input, 
+                { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary },
+                emailError ? styles.inputError : null
+              ]}
+              value={form.email}
+              onChangeText={text => handleChange('email', text)}
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+            />
+            {emailError ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{emailError}</Text>
+            ) : null}
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputWrapper}>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Password"
+                secureTextEntry={!showPassword}
+                style={[
+                  styles.passwordInput, 
+                  { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary },
+                  passwordError ? styles.inputError : null
+                ]}
+                value={form.password}
+                onChangeText={text => handleChange('password', text)}
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={24} 
+                  color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
+            {form.password ? (
+              <View style={styles.passwordStrengthContainer}>
+                <Text style={[styles.passwordStrengthText, { color: colors.textSecondary }]}>
+                  Password strength: <Text style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</Text>
+                </Text>
+              </View>
+            ) : null}
+            {passwordError ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{passwordError}</Text>
+            ) : null}
+          </View>
+
+          {/* Confirm Password Input */}
+          <View style={styles.inputWrapper}>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Confirm Password"
+                secureTextEntry={!showConfirmPassword}
+                style={[
+                  styles.passwordInput, 
+                  { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary },
+                  confirmPasswordError ? styles.inputError : null
+                ]}
+                value={form.confirmPassword}
+                onChangeText={text => handleChange('confirmPassword', text)}
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-off" : "eye"} 
+                  size={24} 
+                  color={colors.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
+            {confirmPasswordError ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{confirmPasswordError}</Text>
+            ) : null}
+          </View>
+
+          {/* Sign Up Button */}
+          <View style={styles.buttonWrapper}>
+            <TouchableOpacity 
+              onPress={handleSignup} 
+              style={[styles.primaryButton, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.background} />
+              ) : (
+                <Text style={[styles.primaryButtonText, { color: colors.background }]}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Login Link */}
+          <Pressable onPress={handleNavigationToLogin}>
+            <Text style={[styles.loginText, { color: colors.textSecondary }]}>
+              Already have an account? <Text style={[styles.loginLink, { color: colors.primary }]}>Login</Text>
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -121,6 +317,12 @@ export default function SignUpScreen({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   banner: {
     width: '100%',
@@ -150,6 +352,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     fontSize: typography.base,
   },
+  passwordInput: {
+    flex: 1,
+    height: 56,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    fontSize: typography.base,
+  },
   buttonWrapper: {
     marginHorizontal: spacing.lg,
     marginVertical: spacing.sm,
@@ -170,18 +379,40 @@ const styles = StyleSheet.create({
     fontWeight: typography.bold,
     fontSize: typography.base,
   },
-  googleButton: {
-    borderRadius: borderRadius.full,
-    height: 48,
-    width: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.md,
-  },
-  footerText: {
+  loginText: {
     textAlign: 'center',
-    textDecorationLine: 'underline',
     fontSize: typography.sm,
-    paddingTop: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  loginLink: {
+    textDecorationLine: 'underline',
+  },
+  inputError: {
+    borderColor: 'red',
+    borderWidth: 1,
+  },
+  errorText: {
+    fontSize: typography.sm,
+    marginTop: spacing.xs,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 56,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: 'transparent',
+  },
+  eyeIcon: {
+    padding: spacing.sm,
+  },
+  passwordStrengthContainer: {
+    marginTop: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  passwordStrengthText: {
+    fontSize: typography.xs,
   },
 });

@@ -1,14 +1,13 @@
-// Enhanced HistoryScreen with all suggested features (without VictoryNative)
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  Modal, Alert, ScrollView, Share, Platform
+  Modal, Alert, ScrollView, Share, Platform, RefreshControl
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useML } from '../../MLContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography, spacing, borderRadius, shadows } from '../../designSystem';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../../ThemeContext';
 
 // Grade points mapping for GPA calculation
@@ -28,7 +27,8 @@ export default function HistoryScreen() {
   if (!isInitialized || !themeColors) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
-        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
+        <Text style={{ color: '#1f2937', fontSize: 18 }}>Loading theme...</Text>
+        <Text style={{ color: '#6b7280', fontSize: 14, marginTop: 10 }}>Please wait while we initialize the app</Text>
       </View>
     );
   }
@@ -51,66 +51,96 @@ export default function HistoryScreen() {
   const [newGrade, setNewGrade] = useState({
     courseName: '', courseCode: '', grade: '', credits: '', semester: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    // Ensure studentData.grades exists before filtering
-    if (studentData?.grades) {
-    setFilteredGrades(
-      studentData.grades.filter(item =>
+    try {
+      // Ensure studentData.grades exists before filtering
+      if (studentData?.grades && Array.isArray(studentData.grades)) {
+        const filtered = studentData.grades.filter(item =>
           item?.courseName?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
-    } else {
-      setFilteredGrades([]);
-    }
-    
-    // Ensure predictionHistory exists before filtering
-    if (predictionHistory) {
-      setFilteredPredictions(
-        predictionHistory.filter(item =>
+        );
+        setFilteredGrades(filtered);
+      } else {
+        setFilteredGrades([]);
+      }
+      
+      // Ensure predictionHistory exists before filtering
+      if (predictionHistory && Array.isArray(predictionHistory)) {
+        const filtered = predictionHistory.filter(item =>
           item?.timestamp?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item?.predicted_gpa?.toString().includes(searchQuery)
-        )
-      );
-    } else {
+        );
+        setFilteredPredictions(filtered);
+      } else {
+        setFilteredPredictions([]);
+      }
+      
+      // Save to AsyncStorage only if data exists and is valid
+      if (studentData?.grades && Array.isArray(studentData.grades)) {
+        AsyncStorage.setItem('grades', JSON.stringify(studentData.grades)).catch(error => {
+          console.error('Error saving grades to storage:', error);
+        });
+      }
+      if (predictionHistory && Array.isArray(predictionHistory)) {
+        AsyncStorage.setItem('predictionHistory', JSON.stringify(predictionHistory)).catch(error => {
+          console.error('Error saving predictions to storage:', error);
+        });
+      }
+    } catch (error) {
+      console.error('Error in search/filter effect:', error);
+      // Fallback to empty arrays on error
+      setFilteredGrades([]);
       setFilteredPredictions([]);
-    }
-    
-    // Save to AsyncStorage only if data exists
-    if (studentData?.grades) {
-    AsyncStorage.setItem('grades', JSON.stringify(studentData.grades));
-    }
-    if (predictionHistory) {
-      AsyncStorage.setItem('predictionHistory', JSON.stringify(predictionHistory));
     }
   }, [searchQuery, studentData?.grades, predictionHistory]);
 
   // Debug logging to help identify issues
-  console.log('HistoryScreen - studentData:', studentData);
-  console.log('HistoryScreen - predictionHistory:', predictionHistory);
-  console.log('HistoryScreen - isSelectionMode:', isSelectionMode);
-  console.log('HistoryScreen - activeTab:', activeTab);
+  if (__DEV__) {
+    console.log('HistoryScreen - studentData:', studentData);
+    console.log('HistoryScreen - predictionHistory:', predictionHistory);
+    console.log('HistoryScreen - isSelectionMode:', isSelectionMode);
+    console.log('HistoryScreen - activeTab:', activeTab);
+    console.log('HistoryScreen - themeColors:', themeColors);
+    console.log('HistoryScreen - isInitialized:', isInitialized);
+  }
 
-  const handleAddGrade = () => {
-    if (!newGrade.courseName || !newGrade.grade || !newGrade.credits) {
-      Alert.alert('Validation', 'Please fill in all required fields');
+  const handleAddGrade = async () => {
+    // Enhanced validation
+    if (!newGrade.courseName?.trim()) {
+      Alert.alert('Validation Error', 'Course name is required');
+      return;
+    }
+    
+    if (!newGrade.grade) {
+      Alert.alert('Validation Error', 'Please select a grade');
+      return;
+    }
+    
+    if (!newGrade.credits || isNaN(parseInt(newGrade.credits)) || parseInt(newGrade.credits) <= 0) {
+      Alert.alert('Validation Error', 'Credits must be a positive number');
       return;
     }
 
     try {
       const gradeData = {
         ...newGrade,
+        courseName: newGrade.courseName.trim(),
+        courseCode: newGrade.courseCode?.trim() || '',
+        semester: newGrade.semester?.trim() || '',
         credits: parseInt(newGrade.credits),
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
       };
 
-      addGrade(gradeData);
+      await addGrade(gradeData);
       setShowAddGrade(false);
       setNewGrade({ courseName: '', courseCode: '', grade: '', credits: '', semester: '' });
       Alert.alert('Success', 'Grade added successfully!');
     } catch (error) {
-      Alert.alert('Error', 'Failed to add grade');
+      console.error('Error adding grade:', error);
+      Alert.alert('Error', error.message || 'Failed to add grade. Please try again.');
     }
   };
 
@@ -142,7 +172,7 @@ export default function HistoryScreen() {
   const handleDeleteSelected = () => {
     Alert.alert(
       'Delete Items',
-      `Are you sure you want to delete ${selectedItems.size} selected item(s)?`,
+      `Are you sure you want to delete ${selectedItems.size} selected item(s)? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -150,6 +180,7 @@ export default function HistoryScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              setIsLoading(true);
               const itemIds = Array.from(selectedItems);
               
               if (activeTab === 'predictions') {
@@ -162,7 +193,10 @@ export default function HistoryScreen() {
               setIsSelectionMode(false);
               Alert.alert('Success', 'Selected items deleted successfully');
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete selected items');
+              console.error('Error deleting items:', error);
+              Alert.alert('Error', error.message || 'Failed to delete selected items. Please try again.');
+            } finally {
+              setIsLoading(false);
             }
           }
         }
@@ -172,6 +206,7 @@ export default function HistoryScreen() {
 
   const handleExportSelected = async () => {
     try {
+      setIsLoading(true);
       let exportData = [];
       
       if (activeTab === 'predictions') {
@@ -180,6 +215,11 @@ export default function HistoryScreen() {
           .map(item => exportPredictionData(item));
       } else {
         exportData = filteredGrades.filter(item => selectedItems.has(item.id));
+      }
+
+      if (exportData.length === 0) {
+        Alert.alert('No Data', 'No data selected for export');
+        return;
       }
 
       const csvContent = convertToCSV(exportData);
@@ -194,21 +234,41 @@ export default function HistoryScreen() {
       setIsSelectionMode(false);
       Alert.alert('Success', 'Data exported successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to export data');
+      console.error('Error exporting data:', error);
+      Alert.alert('Error', error.message || 'Failed to export data. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const convertToCSV = (data) => {
-    if (data.length === 0) return '';
-    
-    const headers = Object.keys(data[0]).join(',');
-    const rows = data.map(item => 
-      Object.values(item).map(value => 
-        typeof value === 'string' ? `"${value}"` : value
-      ).join(',')
-    );
-    
-    return [headers, ...rows].join('\n');
+    try {
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('No data to export');
+      }
+      
+      // Filter out undefined/null values and ensure all items have the same structure
+      const cleanData = data.filter(item => item && typeof item === 'object');
+      
+      if (cleanData.length === 0) {
+        throw new Error('No valid data to export');
+      }
+      
+      const headers = Object.keys(cleanData[0]).filter(key => key !== 'id'); // Exclude internal ID
+      const rows = cleanData.map(item => 
+        headers.map(header => {
+          const value = item[header];
+          if (value === null || value === undefined) return '';
+          if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`; // Escape quotes
+          return value;
+        }).join(',')
+      );
+      
+      return [headers.join(','), ...rows].join('\n');
+    } catch (error) {
+      console.error('Error converting to CSV:', error);
+      throw new Error('Failed to convert data to CSV format');
+    }
   };
 
   const handleEditGrade = (grade) => {
@@ -218,27 +278,73 @@ export default function HistoryScreen() {
     setShowEditGrade(true);
   };
 
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      // Refresh data from context
+      if (studentData?.grades) {
+        setFilteredGrades(studentData.grades);
+      }
+      if (predictionHistory) {
+        setFilteredPredictions(predictionHistory);
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const gradeKeyExtractor = useCallback((item, index) => {
+    if (item?.id) return item.id.toString();
+    if (item?.courseName) return `${item.courseName}_${index}`;
+    return index.toString();
+  }, []);
+
+  const predictionKeyExtractor = useCallback((item, index) => {
+    if (item?.id) return item.id.toString();
+    if (item?.timestamp) return `${item.timestamp}_${index}`;
+    return index.toString();
+  }, []);
+
   const handleSaveEditedGrade = async () => {
     try {
-      if (!editingGrade) return;
-
-      // Validate required fields
-      if (!editingGrade.courseName.trim() || !editingGrade.courseCode.trim() || 
-          !editingGrade.grade || !editingGrade.credits || !editingGrade.semester.trim()) {
-        Alert.alert('Error', 'Please fill in all required fields');
+      if (!editingGrade) {
+        Alert.alert('Error', 'No grade data to edit');
         return;
       }
 
-      // Validate credits is a positive number
-      const creditsNum = parseInt(editingGrade.credits);
-      if (isNaN(creditsNum) || creditsNum <= 0) {
-        Alert.alert('Error', 'Credits must be a positive number');
+      // Enhanced validation
+      if (!editingGrade.courseName?.trim()) {
+        Alert.alert('Validation Error', 'Course name is required');
         return;
       }
+
+      if (!editingGrade.courseCode?.trim()) {
+        Alert.alert('Validation Error', 'Course code is required');
+        return;
+      }
+
+      if (!editingGrade.grade) {
+        Alert.alert('Validation Error', 'Please select a grade');
+        return;
+      }
+
+      if (!editingGrade.credits || isNaN(parseInt(editingGrade.credits)) || parseInt(editingGrade.credits) <= 0) {
+        Alert.alert('Validation Error', 'Credits must be a positive number');
+        return;
+      }
+
+      if (!editingGrade.semester?.trim()) {
+        Alert.alert('Validation Error', 'Semester is required');
+        return;
+      }
+
+      setIsLoading(true);
 
       const updatedGrade = {
         ...editingGrade,
-        credits: creditsNum,
+        credits: parseInt(editingGrade.credits),
         courseName: editingGrade.courseName.trim(),
         courseCode: editingGrade.courseCode.trim(),
         semester: editingGrade.semester.trim(),
@@ -249,118 +355,163 @@ export default function HistoryScreen() {
       setEditingGrade(null);
       Alert.alert('Success', 'Course updated successfully!');
     } catch (error) {
-      Alert.alert('Error', 'Failed to update course');
+      console.error('Error updating grade:', error);
+      Alert.alert('Error', error.message || 'Failed to update course. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renderGradeItem = ({ item }) => {
-    // Safety check
-    if (!item) return null;
+  const renderGradeItem = useCallback(({ item }) => {
+    // Enhanced safety check
+    if (!item || !item.id || !item.courseName) {
+      console.warn('Invalid grade item:', item);
+      return null;
+    }
     
-    return (
-    <View 
-      style={[
-        styles.listItem,
-        isSelectionMode && selectedItems.has(item.id) && styles.selectedItem
-      ]}
-    >
-      <TouchableOpacity 
-        style={styles.listItemContent}
-        onPress={() => isSelectionMode && toggleItemSelection(item.id)}
-        onLongPress={() => {
-          setIsSelectionMode(true);
-          toggleItemSelection(item.id);
-        }}
-      >
-      <View style={styles.listItemHeader}>
-          <View style={{ flex: 1 }}>
-          <Text style={[styles.listItemTitle, { color: themeColors.textPrimary }]}>{item.courseName}</Text>
-          {item.courseCode ? <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>{item.courseCode}</Text> : null}
-          {item.semester ? <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>{item.semester}</Text> : null}
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <View style={[styles.gradeBadge, { backgroundColor: getGradeColor(item.grade) }]}>
-            <Text style={styles.gradeText}>{item.grade}</Text>
-          </View>
-          <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>{item.credits} Credits</Text>
-          <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
-              {((gradePoints[item.grade] || 0) * (item.credits || 0)).toFixed(1)} pts
-          </Text>
-          </View>
-          {isSelectionMode && (
-            <View style={styles.selectionIndicator}>
-              <Ionicons 
-                name={selectedItems.has(item.id) ? "checkmark-circle" : "ellipse-outline"} 
-                size={24} 
-                color={selectedItems.has(item.id) ? themeColors.primary : themeColors.textSecondary} 
-              />
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
+    try {
+      const gradePointsEarned = ((gradePoints[item.grade] || 0) * (item.credits || 0)).toFixed(1);
       
-      {/* Always show edit button - override selection mode for individual items */}
-      <View style={styles.actionButtonsRow}>
+      return (
+        <View 
+          style={[
+            styles.listItem,
+            isSelectionMode && selectedItems.has(item.id) && styles.selectedItem
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.listItemContent}
+            onPress={() => isSelectionMode && toggleItemSelection(item.id)}
+            onLongPress={() => {
+              setIsSelectionMode(true);
+              toggleItemSelection(item.id);
+            }}
+          >
+            <View style={styles.listItemHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.listItemTitle, { color: themeColors.textPrimary }]}>
+                  {item.courseName || 'Unnamed Course'}
+                </Text>
+                {item.courseCode ? (
+                  <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                    {item.courseCode}
+                  </Text>
+                ) : null}
+                {item.semester ? (
+                  <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                    {item.semester}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <View style={[styles.gradeBadge, { backgroundColor: getGradeColor(item.grade) }]}>
+                  <Text style={styles.gradeText}>{item.grade || 'N/A'}</Text>
+                </View>
+                <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                  {item.credits || 0} Credits
+                </Text>
+                <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                  {gradePointsEarned} pts
+                </Text>
+              </View>
+              {isSelectionMode && (
+                <View style={styles.selectionIndicator}>
+                  <Ionicons 
+                    name={selectedItems.has(item.id) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={24} 
+                    color={selectedItems.has(item.id) ? themeColors.primary : themeColors.textSecondary} 
+                  />
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          
+          {/* Always show edit button - override selection mode for individual items */}
+          <View style={styles.actionButtonsRow}>
+            <TouchableOpacity 
+              style={styles.editActionButton}
+              onPress={() => {
+                // Exit selection mode and edit the grade
+                setIsSelectionMode(false);
+                setSelectedItems(new Set());
+                handleEditGrade(item);
+              }}
+            >
+              <Ionicons name="create-outline" size={16} color={themeColors.primary} />
+              <Text style={[styles.editActionButtonText, { color: themeColors.primary }]}>✏️ Edit Course</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    } catch (error) {
+      console.error('Error rendering grade item:', error, item);
+      return null;
+    }
+  }, [isSelectionMode, selectedItems, themeColors]);
+
+  const renderPredictionItem = useCallback(({ item }) => {
+    // Enhanced safety check
+    if (!item || !item.id || !item.timestamp) {
+      console.warn('Invalid prediction item:', item);
+      return null;
+    }
+    
+    try {
+      const timestamp = new Date(item.timestamp);
+      const isInvalidDate = isNaN(timestamp.getTime());
+      
+      return (
         <TouchableOpacity 
-          style={styles.editActionButton}
-          onPress={() => {
-            // Exit selection mode and edit the grade
-            setIsSelectionMode(false);
-            setSelectedItems(new Set());
-            handleEditGrade(item);
+          style={[
+            styles.listItem,
+            isSelectionMode && selectedItems.has(item.id) && styles.selectedItem
+          ]}
+          onPress={() => isSelectionMode && toggleItemSelection(item.id)}
+          onLongPress={() => {
+            setIsSelectionMode(true);
+            toggleItemSelection(item.id);
           }}
         >
-          <Ionicons name="create-outline" size={16} color={themeColors.primary} />
-          <Text style={[styles.editActionButtonText, { color: themeColors.primary }]}>✏️ Edit Course</Text>
+          <View style={styles.listItemHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.listItemTitle, { color: themeColors.textPrimary }]}>
+                GPA Prediction
+              </Text>
+              <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                {isInvalidDate ? 'Invalid Date' : timestamp.toLocaleDateString()} 
+                {!isInvalidDate && ` at ${timestamp.toLocaleTimeString()}`}
+              </Text>
+              <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                Confidence: {item.confidence || 'N/A'}%
+              </Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <View style={[styles.gradeBadge, { backgroundColor: getGpaColor(item.predicted_gpa) }]}>
+                <Text style={styles.gradeText}>
+                  {item.predicted_gpa ? item.predicted_gpa.toFixed(2) : 'N/A'}
+                </Text>
+              </View>
+              <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
+                Predicted GPA
+              </Text>
+            </View>
+            {isSelectionMode && (
+              <View style={styles.selectionIndicator}>
+                <Ionicons 
+                  name={selectedItems.has(item.id) ? "checkmark-circle" : "ellipse-outline"} 
+                  size={24} 
+                  color={selectedItems.has(item.id) ? themeColors.primary : themeColors.textSecondary} 
+                />
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
-      </View>
-    </View>
-  );
-  };
-
-  const renderPredictionItem = ({ item }) => {
-    // Safety check
-    if (!item) return null;
-    
-    return (
-    <TouchableOpacity 
-      style={[
-        styles.listItem,
-        isSelectionMode && selectedItems.has(item.id) && styles.selectedItem
-      ]}
-      onPress={() => isSelectionMode && toggleItemSelection(item.id)}
-      onLongPress={() => {
-        setIsSelectionMode(true);
-        toggleItemSelection(item.id);
-      }}
-    >
-      <View style={styles.listItemHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.listItemTitle, { color: themeColors.textPrimary }]}>GPA Prediction</Text>
-          <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>
-            {new Date(item.timestamp).toLocaleDateString()} at {new Date(item.timestamp).toLocaleTimeString()}
-          </Text>
-          <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>Confidence: {item.confidence}%</Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <View style={[styles.gradeBadge, { backgroundColor: getGpaColor(item.predicted_gpa) }]}>
-            <Text style={styles.gradeText}>{item.predicted_gpa?.toFixed(2)}</Text>
-          </View>
-          <Text style={[styles.listItemMeta, { color: themeColors.textSecondary }]}>Predicted GPA</Text>
-        </View>
-        {isSelectionMode && (
-          <View style={styles.selectionIndicator}>
-            <Ionicons 
-              name={selectedItems.has(item.id) ? "checkmark-circle" : "ellipse-outline"} 
-              size={24} 
-              color={selectedItems.has(item.id) ? themeColors.primary : themeColors.textSecondary} 
-            />
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-    );
-  };
+      );
+    } catch (error) {
+      console.error('Error rendering prediction item:', error, item);
+      return null;
+    }
+  }, [isSelectionMode, selectedItems, themeColors]);
 
   // Define styles inside the component for proper theme access
   const styles = StyleSheet.create({
@@ -403,6 +554,11 @@ export default function HistoryScreen() {
       color: themeColors.primary,
       marginLeft: spacing.xsmall,
     },
+    clearSelectionButtonText: {
+      ...typography.body2,
+      color: themeColors.primary,
+      marginLeft: spacing.xsmall,
+    },
     tabContainer: {
       flexDirection: 'row',
       backgroundColor: themeColors.card,
@@ -429,6 +585,11 @@ export default function HistoryScreen() {
     activeTabText: {
       color: themeColors.background,
     },
+    searchContainer: {
+      position: 'relative',
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
     searchInput: {
       ...typography.body1,
       backgroundColor: themeColors.inputBackground,
@@ -438,6 +599,12 @@ export default function HistoryScreen() {
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
       color: themeColors.textPrimary,
+      flex: 1,
+    },
+    clearSearchButton: {
+      position: 'absolute',
+      right: spacing.small,
+      padding: spacing.xsmall,
     },
     selectionActions: {
       flexDirection: 'row',
@@ -666,6 +833,9 @@ export default function HistoryScreen() {
     saveButton: {
       backgroundColor: themeColors.primary,
     },
+    disabledButton: {
+      opacity: 0.6,
+    },
     buttonText: {
       ...typography.body2,
       fontWeight: '600',
@@ -676,7 +846,7 @@ export default function HistoryScreen() {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <View style={[styles.header, { backgroundColor: themeColors.background }]}>
         <View style={styles.headerTop}>
-        <Text style={[styles.title, { color: themeColors.textPrimary }]}>Academic History</Text>
+          <Text style={[styles.title, { color: themeColors.textPrimary }]}>Academic History</Text>
           <TouchableOpacity 
             style={styles.clearSelectionButton}
             onPress={() => {
@@ -717,17 +887,30 @@ export default function HistoryScreen() {
           </TouchableOpacity>
         </View>
 
-        <TextInput
-          style={[styles.searchInput, { 
-            backgroundColor: themeColors.inputBackground, 
-            borderColor: themeColors.border,
-            color: themeColors.textPrimary 
-          }]}
-          placeholder={activeTab === 'grades' ? "Search by course name..." : "Search predictions..."}
-          placeholderTextColor={themeColors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={[styles.searchInput, { 
+              backgroundColor: themeColors.inputBackground, 
+              borderColor: themeColors.border,
+              color: themeColors.textPrimary 
+            }]}
+            placeholder={activeTab === 'grades' ? "Search by course name..." : "Search predictions..."}
+            placeholderTextColor={themeColors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            maxLength={100}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearSearchButton}
+              onPress={() => setSearchQuery('')}
+            >
+              <Ionicons name="close-circle" size={20} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Selection Actions */}
@@ -736,16 +919,30 @@ export default function HistoryScreen() {
           <TouchableOpacity 
             style={[styles.actionButton, styles.deleteButton]} 
             onPress={handleDeleteSelected}
+            disabled={isLoading}
           >
-            <Ionicons name="trash-outline" size={20} color={themeColors.background} />
-            <Text style={styles.actionButtonText}>Delete ({selectedItems.size})</Text>
+            <Ionicons 
+              name={isLoading ? "hourglass-outline" : "trash-outline"} 
+              size={20} 
+              color={themeColors.background} 
+            />
+            <Text style={styles.actionButtonText}>
+              {isLoading ? 'Deleting...' : `Delete (${selectedItems.size})`}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionButton, styles.exportButton]} 
             onPress={handleExportSelected}
+            disabled={isLoading}
           >
-            <Ionicons name="download-outline" size={20} color={themeColors.background} />
-            <Text style={styles.actionButtonText}>Export ({selectedItems.size})</Text>
+            <Ionicons 
+              name={isLoading ? "hourglass-outline" : "download-outline"} 
+              size={20} 
+              color={themeColors.background} 
+            />
+            <Text style={styles.actionButtonText}>
+              {isLoading ? 'Exporting...' : `Export (${selectedItems.size})`}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -754,19 +951,27 @@ export default function HistoryScreen() {
         <Text style={[styles.cardTitle, { color: themeColors.textPrimary }]}>Academic Summary</Text>
         <View style={styles.summaryContainer}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>{studentData.currentGpa.toFixed(2)}</Text>
+            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>
+              {studentData?.currentGpa ? studentData.currentGpa.toFixed(2) : '0.00'}
+            </Text>
             <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Current GPA</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>{studentData.currentCwa.toFixed(1)}</Text>
+            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>
+              {studentData?.currentCwa ? studentData.currentCwa.toFixed(1) : '0.0'}
+            </Text>
             <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Current CWA</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>{studentData.totalCredits}</Text>
+            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>
+              {studentData?.totalCredits || 0}
+            </Text>
             <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Total Credits</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>{studentData.grades.length}</Text>
+            <Text style={[styles.statValue, { color: themeColors.textPrimary }]}>
+              {studentData?.grades?.length || 0}
+            </Text>
             <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>Courses</Text>
           </View>
         </View>
@@ -778,9 +983,13 @@ export default function HistoryScreen() {
             {activeTab === 'grades' ? 'Course Grades' : 'Prediction History'}
           </Text>
           {activeTab === 'grades' && (
-          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddGrade(true)}>
-            <Text style={styles.addButtonText}>+ Add Grade</Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.addButton, isLoading && styles.disabledButton]} 
+              onPress={() => setShowAddGrade(true)}
+              disabled={isLoading}
+            >
+              <Text style={styles.addButtonText}>+ Add Grade</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -788,8 +997,18 @@ export default function HistoryScreen() {
           filteredGrades.length > 0 ? (
           <FlatList
             data={filteredGrades}
-              keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+            keyExtractor={gradeKeyExtractor}
             renderItem={renderGradeItem}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: spacing.medium }}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                colors={[themeColors.primary]}
+                tintColor={themeColors.primary}
+              />
+            }
           />
         ) : (
           <View style={styles.emptyState}>
@@ -804,17 +1023,27 @@ export default function HistoryScreen() {
           filteredPredictions.length > 0 ? (
             <FlatList
               data={filteredPredictions}
-              keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+              keyExtractor={predictionKeyExtractor}
               renderItem={renderPredictionItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: spacing.medium }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  colors={[themeColors.primary]}
+                  tintColor={themeColors.primary}
+                />
+              }
             />
           ) : (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔮</Text>
-              <Text style={styles.emptyTitle}>No predictions yet</Text>
-              <Text style={styles.emptyText}>
-                Generate your first GPA prediction to see your academic forecast
-              </Text>
-            </View>
+                      <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🔮</Text>
+            <Text style={[styles.emptyTitle, { color: themeColors.textPrimary }]}>No predictions yet</Text>
+            <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>
+              Generate your first GPA prediction to see your academic forecast
+            </Text>
+          </View>
           )
         )}
       </View>
@@ -902,8 +1131,11 @@ export default function HistoryScreen() {
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
                 onPress={handleAddGrade}
+                disabled={isLoading}
               >
-                <Text style={[styles.buttonText, { color: themeColors.background }]}>Add Grade</Text>
+                <Text style={[styles.buttonText, { color: themeColors.background }]}>
+                  {isLoading ? 'Adding...' : 'Add Grade'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -992,12 +1224,15 @@ export default function HistoryScreen() {
                   >
                     <Text style={[styles.buttonText, { color: themeColors.background }]}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.saveButton]}
-                    onPress={handleSaveEditedGrade}
-                  >
-                    <Text style={[styles.buttonText, { color: themeColors.background }]}>Save Changes</Text>
-                  </TouchableOpacity>
+                                  <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleSaveEditedGrade}
+                  disabled={isLoading}
+                >
+                  <Text style={[styles.buttonText, { color: themeColors.background }]}>
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </TouchableOpacity>
                 </View>
               </>
             )}
