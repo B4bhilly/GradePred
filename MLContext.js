@@ -6,6 +6,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CONFIG } from './config';
+import { 
+  generateHash, 
+  generateChecksum, 
+  verifyDataIntegrity, 
+  generateGradeHash, 
+  generatePredictionHash,
+  generateBatchHash,
+  verifyHash 
+} from './utils/hashing';
 
 const MLContext = createContext();
 
@@ -149,15 +158,54 @@ export function MLProvider({ children }) {
     };
   }, []);
 
-  // Load stored data from AsyncStorage with enhanced error handling
+  // Load stored data from AsyncStorage with enhanced error handling and hashing
   const loadStoredData = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Load student data
+      // Load student data with integrity check
       const storedStudentData = await AsyncStorage.getItem(CONFIG.STORAGE.KEYS.STUDENT_DATA);
+      const storedChecksum = await AsyncStorage.getItem('gradesChecksum');
+      
       if (storedStudentData) {
         const parsedData = JSON.parse(storedStudentData);
+        
+        // Validate data integrity with checksum if available
+        if (parsedData && typeof parsedData === 'object' && storedChecksum && parsedData.grades?.length > 0) {
+          try {
+            const currentChecksum = await generateBatchHash(parsedData.grades);
+            if (currentChecksum !== storedChecksum) {
+              console.warn('Data integrity check failed - checksum mismatch');
+              
+              // Attempt to recover individual grade hashes
+              const validGrades = [];
+              for (const grade of parsedData.grades) {
+                if (grade.dataHash) {
+                  const isValid = await verifyHash(grade, grade.dataHash);
+                  if (isValid) {
+                    validGrades.push(grade);
+                  } else {
+                    console.warn(`Grade ${grade.id} failed integrity check`);
+                  }
+                } else {
+                  // Grade without hash - validate basic structure
+                  if (validateGradeData(grade).length === 0) {
+                    validGrades.push(grade);
+                  }
+                }
+              }
+              
+              // Update data with valid grades only
+              parsedData.grades = validGrades;
+              if (validGrades.length !== parsedData.grades.length) {
+                console.warn(`${parsedData.grades.length - validGrades.length} grades failed integrity check`);
+              }
+            }
+          } catch (hashError) {
+            console.warn('Hash verification failed, using basic validation:', hashError);
+          }
+        }
+        
         // Validate loaded data
         if (parsedData && typeof parsedData === 'object') {
           setStudentData({
@@ -167,13 +215,41 @@ export function MLProvider({ children }) {
         }
       }
 
-      // Load prediction history
+      // Load prediction history with integrity check
       const storedPredictions = await AsyncStorage.getItem(CONFIG.STORAGE.KEYS.PREDICTION_HISTORY);
       if (storedPredictions) {
         const parsedPredictions = JSON.parse(storedPredictions);
         if (Array.isArray(parsedPredictions)) {
-          setPredictionHistory(parsedPredictions);
-          setPredictions(parsedPredictions);
+          // Validate prediction integrity
+          const validPredictions = [];
+          for (const prediction of parsedPredictions) {
+            if (prediction.dataHash) {
+              try {
+                const isValid = await verifyHash(prediction, prediction.dataHash);
+                if (isValid) {
+                  validPredictions.push(prediction);
+                } else {
+                  console.warn(`Prediction ${prediction.id} failed integrity check`);
+                }
+              } catch (hashError) {
+                console.warn(`Hash verification failed for prediction ${prediction.id}:`, hashError);
+                // Include prediction if hash verification fails
+                validPredictions.push(prediction);
+              }
+            } else {
+              // Prediction without hash - validate basic structure
+              if (prediction.predicted_gpa && prediction.timestamp) {
+                validPredictions.push(prediction);
+              }
+            }
+          }
+          
+          if (validPredictions.length !== parsedPredictions.length) {
+            console.warn(`${parsedPredictions.length - validPredictions.length} predictions failed integrity check`);
+          }
+          
+          setPredictionHistory(validPredictions);
+          setPredictions(validPredictions);
         }
       }
     } catch (error) {
@@ -192,7 +268,7 @@ export function MLProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [validateGradeData]);
 
   // Enhanced data saving with error handling and retry logic
   const saveDataToStorage = useCallback(async (key, data, retryCount = 0) => {
@@ -396,6 +472,10 @@ export function MLProvider({ children }) {
           inputData: predictionData,
           source: 'backend'
         };
+
+        // Generate hash for prediction data integrity
+        const predictionHash = await generatePredictionHash(predictionWithMetadata);
+        predictionWithMetadata.dataHash = predictionHash;
         
         const newPredictions = [predictionWithMetadata, ...predictions];
         const newPredictionHistory = [predictionWithMetadata, ...predictionHistory];
@@ -487,6 +567,10 @@ export function MLProvider({ children }) {
         isFallback: true,
         source: 'fallback'
       };
+
+      // Generate hash for fallback prediction data integrity
+      const predictionHash = await generatePredictionHash(predictionWithMetadata);
+      predictionWithMetadata.dataHash = predictionHash;
       
       const newPredictions = [predictionWithMetadata, ...predictions];
       const newPredictionHistory = [predictionWithMetadata, ...predictionHistory];
@@ -543,11 +627,15 @@ export function MLProvider({ children }) {
         throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
       }
 
+      // Generate hash for data integrity
+      const gradeHash = await generateGradeHash(gradeData);
+      const gradeWithHash = { ...gradeData, dataHash: gradeHash };
+
       if (backendAvailable) {
         const response = await fetch(`${API_BASE_URL}/add-grade`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(gradeData),
+          body: JSON.stringify(gradeWithHash),
         });
         
         if (!response.ok) {
@@ -555,6 +643,12 @@ export function MLProvider({ children }) {
         }
         
         const updatedData = await response.json();
+        
+        // Verify data integrity with hash
+        if (updatedData.dataHash && !(await verifyHash(gradeData, updatedData.dataHash))) {
+          console.warn('Data integrity check failed for backend response');
+        }
+        
         setStudentData(updatedData);
         await saveDataToStorage(CONFIG.STORAGE.KEYS.STUDENT_DATA, updatedData);
         return updatedData;
@@ -562,7 +656,7 @@ export function MLProvider({ children }) {
         // Enhanced fallback: update local state and save to storage
         const updatedStudentData = {
           ...studentData,
-          grades: [...studentData.grades, gradeData],
+          grades: [...studentData.grades, gradeWithHash],
           totalCredits: studentData.totalCredits + (gradeData.credits || 0),
           lastUpdated: new Date().toISOString()
         };
@@ -580,10 +674,17 @@ export function MLProvider({ children }) {
           updatedStudentData.currentCwa = parseFloat(((totalPoints / totalCredits) * 25).toFixed(1));
         }
         
+        // Generate batch checksum for all grades
+        const batchChecksum = await generateBatchHash(updatedStudentData.grades);
+        updatedStudentData.gradesChecksum = batchChecksum;
+        
         setStudentData(updatedStudentData);
         await saveDataToStorage(CONFIG.STORAGE.KEYS.STUDENT_DATA, updatedStudentData);
         
-        return { success: true, message: 'Grade added locally', data: updatedStudentData };
+        // Save batch checksum separately
+        await AsyncStorage.setItem('gradesChecksum', batchChecksum);
+        
+        return { success: true, message: 'Grade added locally with integrity check', data: updatedStudentData, checksum: batchChecksum };
       }
     } catch (error) {
       console.error('Failed to add grade:', error);
@@ -687,12 +788,12 @@ export function MLProvider({ children }) {
     return recommendations;
   }, []);
 
-  // Enhanced data export
-  const exportPredictionData = useCallback((prediction) => {
+  // Enhanced data export with integrity verification
+  const exportPredictionData = useCallback(async (prediction) => {
     if (!prediction) return null;
     
     try {
-      return {
+      const exportData = {
         prediction_id: prediction.id,
         timestamp: prediction.timestamp,
         predicted_gpa: prediction.predicted_gpa,
@@ -702,6 +803,12 @@ export function MLProvider({ children }) {
         source: prediction.source || 'unknown',
         export_date: new Date().toISOString(),
       };
+
+      // Generate hash for export data integrity
+      const exportHash = await generateHash(exportData);
+      exportData.integrity_hash = exportHash;
+
+      return exportData;
     } catch (error) {
       console.error('Error exporting prediction data:', error);
       return null;
