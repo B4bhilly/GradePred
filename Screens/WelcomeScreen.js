@@ -48,7 +48,7 @@ const HomeScreen = ({navigation}) => {
                         style={[styles.secondaryButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]} 
                         onPress={handleNavigationToLogin}
                     >
-                        <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Sign In</Text>
+                        <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Log In</Text>
                     </TouchableOpacity>
                 </View>
             </View>

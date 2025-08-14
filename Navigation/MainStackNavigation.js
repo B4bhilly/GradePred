@@ -8,7 +8,7 @@ import MainTabNavigator from '../Screens/MainTab';
 import GPAScreen from '../Screens/HomeScreens/GPAScreen';
 import CWAScreen from '../Screens/HomeScreens/CWAScreen';
 import SettingsScreen from '../Screens/HomeScreens/SettingsScreen';
-import GPAScreenF from '../Screens/HomeScreens/GPAScreenF';
+// import GPAScreenF from '../Screens/HomeScreens/GPAScreenF';
 import HistoryScreen from '../Screens/HistoryScreens/HistoryScreen';
 import LoginScreen from '../LoginScreen';
 import SignupScreen from '../SignupScreen';
@@ -36,28 +36,20 @@ const MainStackNavigator = () => {
   return (
     <NavigationContainer>
         <Stack.Navigator 
-          initialRouteName={isAuthenticated ? 'MainTab' : 'Home'} 
+          initialRouteName={isAuthenticated ? 'MainTab' : 'Login'} 
           screenOptions={{headerShown: false}}
         >
-            {!isAuthenticated ? (
-              // Auth screens - shown when user is not authenticated
-              <>
-                <Stack.Screen name="Home" component={HomeScreen} options={{headerShown: false}} />
-                <Stack.Screen name="SignUp" component={SignupScreen} options={{headerShown:false}} />
-                <Stack.Screen name="Login" component={LoginScreen} options={{headerShown:false}} />
-              </>
-            ) : (
-              // App screens - shown when user is authenticated
-              <>
-                <Stack.Screen name="MainTab" component={MainTabNavigator} options={{headerShown: false}} />
-                <Stack.Screen name="Welcome" component={WelcomeScreen} options={{headerShown: false}} />
-                <Stack.Screen name="GPA" component={GPAScreen} options={{headerShown: false}} />
-                <Stack.Screen name="CWA" component={CWAScreen} options={{headerShown: false}} />
-                <Stack.Screen name="Settings" component={SettingsScreen} options={{headerShown: false}} />
-                <Stack.Screen name="GPAF" component={GPAScreenF} options={{headerShown: false}} />
-                <Stack.Screen name="History" component={HistoryScreen} options={{headerShown: false}} />
-              </>
-            )}
+            {/* Always show all screens, control access through initial route */}
+            <Stack.Screen name="Home" component={HomeScreen} options={{headerShown: false}} />
+            <Stack.Screen name="SignUp" component={SignupScreen} options={{headerShown:false}} />
+            <Stack.Screen name="Login" component={LoginScreen} options={{headerShown:false}} />
+            <Stack.Screen name="MainTab" component={MainTabNavigator} options={{headerShown: false}} />
+            <Stack.Screen name="Welcome" component={WelcomeScreen} options={{headerShown: false}} />
+            <Stack.Screen name="GPA" component={GPAScreen} options={{headerShown: false}} />
+            <Stack.Screen name="CWA" component={CWAScreen} options={{headerShown: false}} />
+            <Stack.Screen name="Settings" component={SettingsScreen} options={{headerShown: false}} />
+            {/* <Stack.Screen name="GPAF" component={GPAScreenF} options={{headerShown: false}} /> */}
+            <Stack.Screen name="History" component={HistoryScreen} options={{headerShown: false}} />
         </Stack.Navigator>
     </NavigationContainer>
   )

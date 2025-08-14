@@ -1,5 +1,4 @@
 import { sha256 } from 'react-native-sha256';
-import { Buffer } from 'buffer';
 
 /**
  * Hashing utility functions for GradePred application
@@ -227,19 +226,4 @@ export const generateSaltedHash = async (data, salt) => {
     console.error('Salted hash generation error:', error);
     throw new Error('Failed to generate salted hash');
   }
-};
-
-export default {
-  generateHash,
-  generateChecksum,
-  verifyDataIntegrity,
-  generateGradeHash,
-  generatePredictionHash,
-  generateSessionHash,
-  generateConfigHash,
-  generateBatchHash,
-  generateFileHash,
-  verifyHash,
-  generateSalt,
-  generateSaltedHash
 };

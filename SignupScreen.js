@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,51 +6,17 @@ import {
   TouchableOpacity,
   ImageBackground,
   StyleSheet,
-  SafeAreaView,
-  Pressable,
-  Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import Feather from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { typography, spacing, borderRadius, shadows } from './designSystem';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
+import { spacing, borderRadius, shadows } from './designSystem';
 
-// Email validation function
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-// Password strength validation
-const getPasswordStrength = (password) => {
-  let strength = 0;
-  if (password.length >= 8) strength++;
-  if (/[a-z]/.test(password)) strength++;
-  if (/[A-Z]/.test(password)) strength++;
-  if (/[0-9]/.test(password)) strength++;
-  if (/[^A-Za-z0-9]/.test(password)) strength++;
-  return strength;
-};
-
-export default function SignUpScreen({navigation}) {
-  const { signup, loading } = useAuth();
-  const { colors, isInitialized } = useTheme();
-  
-  // Safety check to ensure theme is ready
-  if (!isInitialized || !colors) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' }}>
-        <Text style={{ color: '#1f2937' }}>Loading theme...</Text>
-      </View>
-    );
-  }
-  
+const SignupScreen = ({ navigation }) => {
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -60,14 +26,51 @@ export default function SignUpScreen({navigation}) {
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  
+  const { signup } = useAuth();
+  const { colors } = useTheme();
+
+  // Clear all errors when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setUsernameError('');
+      setEmailError('');
+      setPasswordError('');
+      setConfirmPasswordError('');
+      setError('');
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Password strength validation
+  const getPasswordStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+  };
 
   const handleChange = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
     
     // Clear errors when user types
+    if (key === 'username') setUsernameError('');
     if (key === 'email') setEmailError('');
     if (key === 'password') setPasswordError('');
     if (key === 'confirmPassword') setConfirmPasswordError('');
@@ -81,13 +84,13 @@ export default function SignUpScreen({navigation}) {
     let isValid = true;
     
     // Clear previous errors
+    setUsernameError('');
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
     
     // Username validation
     if (!form.username.trim()) {
-      Alert.alert('Error', 'Username is required');
       isValid = false;
     }
     
@@ -127,25 +130,47 @@ export default function SignUpScreen({navigation}) {
   const handleSignup = async () => {
     if (!validateForm()) return;
     
-    const result = await signup(form.email, form.password, form.username);
-    
-    if (result.success) {
+    try {
+      setLoading(true);
+      const result = await signup(form.email, form.password, form.username);
+      
+      // Log successful account creation
+      console.log('✅ Account Created Successfully!');
+      console.log('👤 User Details:');
+      console.log('   Username:', form.username);
+      console.log('   Email:', form.email);
+      console.log('   Account Created At:', new Date().toLocaleString());
+      console.log('   Signup Result:', result);
+      
       console.log('Signup result success, attempting navigation to MainTab');
       // Add a small delay to ensure state is updated
       setTimeout(() => {
-        console.log('Navigating to MainTab now');
-        navigation.navigate('MainTab');
-      }, 100);
-    } else {
-      Alert.alert('Signup Failed', result.error);
+        try {
+          console.log('Navigating to MainTab now');
+          navigation.navigate('MainTab');
+        } catch (navError) {
+          console.error('Navigation error:', navError);
+          // Fallback: try to reset the navigation stack
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTab' }],
+          });
+        }
+      }, 200);
+      
+    } catch (error) {
+      console.error('❌ Signup Failed:', error.message);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
   
   const getPasswordStrengthColor = () => {
     const strength = getPasswordStrength(form.password);
-    if (strength >= 4) return colors.success;
-    if (strength >= 3) return colors.warning;
-    return colors.error;
+    if (strength >= 4) return '#10b981';
+    if (strength >= 3) return '#f59e0b';
+    return '#ef4444';
   };
 
   const getPasswordStrengthText = () => {
@@ -157,252 +182,267 @@ export default function SignUpScreen({navigation}) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ImageBackground
+      source={require('./assets/images/doodle.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
       <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView 
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Background image */}
-          <ImageBackground
-            source={require('./assets/images/dark1.png')}
-            style={styles.banner}
-            imageStyle={styles.bannerImage}
-          />
-
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>Sign Up</Text>
-          </View>
-
-          {/* Username Input */}
-          <View style={styles.inputWrapper}>
-            <TextInput
-              placeholder="Username"
-              style={[styles.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
-              value={form.username}
-              onChangeText={text => handleChange('username', text)}
-              placeholderTextColor={colors.textSecondary}
-              autoCapitalize="words"
-              autoCorrect={false}
-            />
-          </View>
-
-          {/* Email Input */}
-          <View style={styles.inputWrapper}>
-            <TextInput
-              placeholder="Email"
-              style={[
-                styles.input, 
-                { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary },
-                emailError ? styles.inputError : null
-              ]}
-              value={form.email}
-              onChangeText={text => handleChange('email', text)}
-              placeholderTextColor={colors.textSecondary}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoCorrect={false}
-            />
-            {emailError ? (
-              <Text style={[styles.errorText, { color: colors.error }]}>{emailError}</Text>
-            ) : null}
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputWrapper}>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                placeholder="Password"
-                secureTextEntry={!showPassword}
-                style={[
-                  styles.passwordInput, 
-                  { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary },
-                  passwordError ? styles.inputError : null
-                ]}
-                value={form.password}
-                onChangeText={text => handleChange('password', text)}
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons 
-                  name={showPassword ? "eye-off" : "eye"} 
-                  size={24} 
-                  color={colors.textSecondary} 
-                />
-              </TouchableOpacity>
+          {/* Centered Blurred Form Container */}
+          <View style={styles.formContainer}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>Sign up to get started with GradePred</Text>
             </View>
-            {form.password ? (
-              <View style={styles.passwordStrengthContainer}>
-                <Text style={[styles.passwordStrengthText, { color: colors.textSecondary }]}>
-                  Password strength: <Text style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</Text>
-                </Text>
+
+            <View style={styles.form}>
+              {/* Username Input */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    form.username.trim() === '' && (emailError || passwordError || confirmPasswordError) ? styles.inputError : null
+                  ]}
+                  placeholder="Username"
+                  placeholderTextColor="black"
+                  value={form.username}
+                  onChangeText={(value) => handleChange('username', value)}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+                {form.username.trim() === '' && (emailError || passwordError || confirmPasswordError) ? (
+                  <Text style={styles.errorText}>Username is required</Text>
+                ) : null}
               </View>
-            ) : null}
-            {passwordError ? (
-              <Text style={[styles.errorText, { color: colors.error }]}>{passwordError}</Text>
-            ) : null}
-          </View>
 
-          {/* Confirm Password Input */}
-          <View style={styles.inputWrapper}>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                placeholder="Confirm Password"
-                secureTextEntry={!showConfirmPassword}
-                style={[
-                  styles.passwordInput, 
-                  { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary },
-                  confirmPasswordError ? styles.inputError : null
-                ]}
-                value={form.confirmPassword}
-                onChangeText={text => handleChange('confirmPassword', text)}
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons 
-                  name={showConfirmPassword ? "eye-off" : "eye"} 
-                  size={24} 
-                  color={colors.textSecondary} 
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    emailError ? styles.inputError : null
+                  ]}
+                  placeholder="Email"
+                  placeholderTextColor="black"
+                  value={form.email}
+                  onChangeText={(value) => handleChange('email', value)}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoCorrect={false}
                 />
+                {emailError ? (
+                  <Text style={styles.errorText}>{emailError}</Text>
+                ) : null}
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <View style={[
+                  styles.passwordContainer,
+                  passwordError ? styles.inputError : null
+                ]}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Password"
+                    placeholderTextColor="black"
+                    value={form.password}
+                    onChangeText={(value) => handleChange('password', value)}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons 
+                      name={showPassword ? "eye-off" : "eye"} 
+                      size={24} 
+                      color={colors.textSecondary} 
+                    />
+                  </TouchableOpacity>
+                </View>
+                {form.password ? (
+                  <View style={styles.passwordStrengthContainer}>
+                    <Text style={styles.passwordStrengthText}>
+                      Password strength: <Text style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</Text>
+                    </Text>
+                  </View>
+                ) : null}
+                {passwordError ? (
+                  <Text style={styles.errorText}>{passwordError}</Text>
+                ) : null}
+              </View>
+
+              {/* Confirm Password Input */}
+              <View style={styles.inputContainer}>
+                <View style={[
+                  styles.passwordContainer,
+                  confirmPasswordError ? styles.inputError : null
+                ]}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Confirm Password"
+                    placeholderTextColor="black"
+                    value={form.confirmPassword}
+                    onChangeText={(value) => handleChange('confirmPassword', value)}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <Ionicons 
+                      name={showConfirmPassword ? "eye-off" : "eye"} 
+                      size={24} 
+                      color={colors.textSecondary} 
+                    />
+                  </TouchableOpacity>
+                </View>
+                {confirmPasswordError ? (
+                  <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                ) : null}
+              </View>
+
+              {/* General Error Display */}
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
+
+              {/* Sign Up Button */}
+              <TouchableOpacity
+                style={[styles.loginButton, loading && styles.buttonDisabled]}
+                onPress={handleSignup}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Create Account</Text>
+                )}
               </TouchableOpacity>
+
+              {/* Login Link */}
+              <View style={styles.signupContainer}>
+                <Text style={styles.signupText}>
+                  Already have an account?{' '}
+                </Text>
+                <TouchableOpacity onPress={handleNavigationToLogin}>
+                  <Text style={styles.signupLink}>Sign In</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            {confirmPasswordError ? (
-              <Text style={[styles.errorText, { color: colors.error }]}>{confirmPasswordError}</Text>
-            ) : null}
           </View>
-
-          {/* Sign Up Button */}
-          <View style={styles.buttonWrapper}>
-            <TouchableOpacity 
-              onPress={handleSignup} 
-              style={[styles.primaryButton, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.background} />
-              ) : (
-                <Text style={[styles.primaryButtonText, { color: colors.background }]}>Sign Up</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Login Link */}
-          <Pressable onPress={handleNavigationToLogin}>
-            <Text style={[styles.loginText, { color: colors.textSecondary }]}>
-              Already have an account? <Text style={[styles.loginLink, { color: colors.primary }]}>Login</Text>
-            </Text>
-          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ImageBackground>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
   },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
+  scrollContainer: {
     flexGrow: 1,
-  },
-  banner: {
-    width: '100%',
-    height: 300,
-    justifyContent: 'flex-end',
-  },
-  bannerImage: {
-    resizeMode: 'cover',
-  },
-  header: {
+    justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
   },
-  title: {
-    fontSize: typography.xl,
-    fontWeight: typography.bold,
-    textAlign: 'center',
-    marginRight: spacing['2xl'], // space for the icon
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: 'lightgrey',
+    opacity: 0.8,
+    borderRadius: 10,
+    padding: spacing.xl,
+    alignItems: 'center',
+    // Blur effect and shadow
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
-  inputWrapper: {
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.sm,
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xl * 2,
+    marginTop: spacing.xl * 2,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'black',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: 'black',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: spacing.lg,
+  },
+  form: {
+    width: '100%',
+    padding: spacing.xl,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
   },
   input: {
-    height: 56,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg,
-    fontSize: typography.base,
-  },
-  passwordInput: {
-    flex: 1,
-    height: 56,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg,
-    fontSize: typography.base,
-  },
-  buttonWrapper: {
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    borderRadius: borderRadius.full,
-    height: 48,
-    width: '60%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.md,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  primaryButtonText: {
-    fontWeight: typography.bold,
-    fontSize: typography.base,
-  },
-  loginText: {
-    textAlign: 'center',
-    fontSize: typography.sm,
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  loginLink: {
-    textDecorationLine: 'underline',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 16,
+    minHeight: 50,
+    backgroundColor: 'white',
+    color: 'black',
   },
   inputError: {
     borderColor: 'red',
-    borderWidth: 1,
-  },
-  errorText: {
-    fontSize: typography.sm,
-    marginTop: spacing.xs,
+    borderWidth: 2,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 56,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg,
+    height: 50,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  passwordInput: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+    color: 'black',
     backgroundColor: 'transparent',
   },
   eyeIcon: {
@@ -413,6 +453,57 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   passwordStrengthText: {
-    fontSize: typography.xs,
+    fontSize: 12,
+    color: 'black',
+  },
+  errorContainer: {
+    marginBottom: spacing.lg,
+  },
+  errorText: {
+    fontSize: 14,
+    color: 'red',
+    fontWeight: 'bold',
+    marginTop: spacing.xs,
+  },
+  loginButton: {
+    width: '80%',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+    minHeight: 50,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupText: {
+    fontSize: 16,
+    color: 'black',
+  },
+  signupLink: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#60a5fa',
   },
 });
+
+export default SignupScreen;

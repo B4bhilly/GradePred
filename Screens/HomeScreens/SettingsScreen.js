@@ -151,7 +151,7 @@ const SettingsScreen = ({ navigation }) => {
             <View style={[styles.clearDataIconContainer, { backgroundColor: themeColors.backgroundSecondary }]}>
               <Ionicons name="trash-outline" size={20} color={themeColors.error} />
             </View>
-            <Text style={[styles.clearDataText, { color: themeColors.error }]}>Clear All Data</Text>
+            <Text style={[styles.clearDataText, { color: themeColors.error }]}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </View>

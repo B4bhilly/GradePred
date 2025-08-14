@@ -1,97 +1,83 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
-// Email validation function
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-// Password strength validation
-const getPasswordStrength = (password) => {
-  let strength = 0;
-  if (password.length >= 8) strength++;
-  if (/[a-z]/.test(password)) strength++;
-  if (/[A-Z]/.test(password)) strength++;
-  if (/[0-9]/.test(password)) strength++;
-  if (/[^A-Za-z0-9]/.test(password)) strength++;
-  return strength;
-};
-
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
-  // Check if user is already logged in on app start
+  // Load stored credentials on app start
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      setLoading(true);
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+    const loadStoredCredentials = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('userData');
+        const storedAuth = await AsyncStorage.getItem('isAuthenticated');
+        
+        if (storedUser && storedAuth === 'true') {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
         setIsAuthenticated(true);
-      } else {
-        // Ensure we're not authenticated if no user data
-        setUser(null);
-        setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Error checking auth status:', error);
-      // On error, assume not authenticated
-      setUser(null);
-      setIsAuthenticated(false);
+        console.error('Error loading stored credentials:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email, password) => {
+    loadStoredCredentials();
+  }, []);
+
+  const login = async (username, password) => {
     try {
       setLoading(true);
       
-      // Enhanced validation
-      if (!email || !password) {
-        throw new Error('Please enter email and password');
+      // Validate input
+      if (!username || !password) {
+        throw new Error('Username and password are required');
       }
       
-      if (!isValidEmail(email)) {
-        throw new Error('Please enter a valid email address');
+      // Get stored credentials
+      const storedCredentials = await AsyncStorage.getItem('userCredentials');
+      if (!storedCredentials) {
+        throw new Error('No user account found. Please sign up first.');
       }
       
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
+      const credentials = JSON.parse(storedCredentials);
+      
+      // Check if username exists
+      if (!credentials[username]) {
+        throw new Error('Username not found');
       }
       
-      // Simulate API call - replace with actual authentication
-      // In a real app, you would make an API call to your backend
-      if (email && password) {
+      // Verify password
+      if (credentials[username].password !== password) {
+        throw new Error('Incorrect password');
+      }
+      
+      // Login successful
         const userData = {
-          id: Date.now(),
-          email: email.toLowerCase().trim(),
-          username: email.split('@')[0],
-          createdAt: new Date().toISOString(),
-          authMethod: 'email',
-        };
-        
-        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        username: username,
+        email: credentials[username].email,
+        id: credentials[username].id,
+        createdAt: credentials[username].createdAt
+      };
+      
         setUser(userData);
         setIsAuthenticated(true);
-        console.log('Login successful, user authenticated:', userData);
-        return { success: true };
-      } else {
-        throw new Error('Please enter email and password');
-      }
+      
+      // Store user session
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+      
+      console.log('Login successful for user:', username);
+      return { success: true, user: userData };
+      
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: error.message };
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -101,49 +87,60 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       
-      // Enhanced validation
+      // Validate input
       if (!email || !password || !username) {
-        throw new Error('Please fill in all fields');
-      }
-      
-      if (!isValidEmail(email)) {
-        throw new Error('Please enter a valid email address');
-      }
-      
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
+        throw new Error('All fields are required');
       }
       
       if (username.length < 3) {
-        throw new Error('Username must be at least 3 characters long');
+        throw new Error('Username must be at least 3 characters');
       }
       
-      // Check if user already exists (in a real app, check against backend)
-      const existingUser = await AsyncStorage.getItem('user');
-      if (existingUser) {
-        const parsedUser = JSON.parse(existingUser);
-        if (parsedUser.email.toLowerCase() === email.toLowerCase()) {
-          throw new Error('User with this email already exists');
-        }
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+      }
+      
+      // Check if username already exists
+      const storedCredentials = await AsyncStorage.getItem('userCredentials');
+      const credentials = storedCredentials ? JSON.parse(storedCredentials) : {};
+      
+      if (credentials[username]) {
+        throw new Error('Username already exists');
       }
       
       // Create new user
-      const userData = {
-        id: Date.now(),
-        username: username.trim(),
-        email: email.toLowerCase().trim(),
-        createdAt: new Date().toISOString(),
-        authMethod: 'email',
+      const newUser = {
+        username: username,
+        email: email,
+        password: password,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString()
       };
       
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
+      // Store user credentials
+      credentials[username] = {
+        email: email,
+        password: password,
+        id: newUser.id,
+        createdAt: newUser.createdAt
+      };
+      
+      await AsyncStorage.setItem('userCredentials', JSON.stringify(credentials));
+      
+      // Auto-login after signup
+      setUser(newUser);
       setIsAuthenticated(true);
-      console.log('Signup successful, user authenticated:', userData);
-      return { success: true };
+      
+      // Store user session
+      await AsyncStorage.setItem('userData', JSON.stringify(newUser));
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+      
+      console.log('Signup successful for user:', username);
+      return { success: true, user: newUser };
+      
     } catch (error) {
       console.error('Signup error:', error);
-      return { success: false, error: error.message };
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -153,78 +150,112 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       
-      // Clear user data from storage
-      await AsyncStorage.removeItem('user');
-      
-      // Reset state
+      // Clear user session
       setUser(null);
       setIsAuthenticated(false);
       
+      await AsyncStorage.removeItem('userData');
+      await AsyncStorage.removeItem('isAuthenticated');
+      
+      console.log('Logout successful');
       return { success: true };
+      
     } catch (error) {
       console.error('Logout error:', error);
-      return { success: false, error: error.message };
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const clearAuth = async () => {
+  const changePassword = async (currentPassword, newPassword, confirmNewPassword) => {
     try {
-      setLoading(true);
+      if (!user) {
+        throw new Error('No user logged in');
+      }
       
-      // Clear all auth-related data
-      await AsyncStorage.multiRemove(['user', 'authToken', 'refreshToken']);
+      if (!currentPassword || !newPassword || !confirmNewPassword) {
+        throw new Error('All fields are required');
+      }
       
-      // Reset state
-      setUser(null);
-      setIsAuthenticated(false);
+      if (newPassword.length < 6) {
+        throw new Error('New password must be at least 6 characters');
+      }
       
+      if (newPassword !== confirmNewPassword) {
+        throw new Error('New passwords do not match');
+      }
+      
+      // Get stored credentials
+      const storedCredentials = await AsyncStorage.getItem('userCredentials');
+      const credentials = JSON.parse(storedCredentials);
+      
+      // Verify current password
+      if (credentials[user.username].password !== currentPassword) {
+        throw new Error('Current password is incorrect');
+      }
+      
+      // Update password
+      credentials[user.username].password = newPassword;
+      await AsyncStorage.setItem('userCredentials', JSON.stringify(credentials));
+      
+      console.log('Password changed successfully');
       return { success: true };
+      
     } catch (error) {
-      console.error('Clear auth error:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
+      console.error('Change password error:', error);
+      throw error;
     }
   };
 
-  const refreshAuth = async () => {
+  const deleteAccount = async (password) => {
     try {
-      setLoading(true);
+      if (!user) {
+        throw new Error('No user logged in');
+      }
       
-      // In a real app, you would refresh the auth token here
-      // For now, we'll just check if the user is still valid
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        return { success: true };
-      } else {
+      if (!password) {
+        throw new Error('Password is required');
+      }
+      
+      // Get stored credentials
+      const storedCredentials = await AsyncStorage.getItem('userCredentials');
+      const credentials = JSON.parse(storedCredentials);
+      
+      // Verify password
+      if (credentials[user.username].password !== password) {
+        throw new Error('Password is incorrect');
+      }
+      
+      // Remove user credentials
+      delete credentials[user.username];
+      await AsyncStorage.setItem('userCredentials', JSON.stringify(credentials));
+      
+      // Clear user session
         setUser(null);
         setIsAuthenticated(false);
-        return { success: false, error: 'No valid session found' };
-      }
+      
+      await AsyncStorage.removeItem('userData');
+      await AsyncStorage.removeItem('isAuthenticated');
+      
+      console.log('Account deleted successfully');
+      return { success: true };
+      
     } catch (error) {
-      console.error('Refresh auth error:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
+      console.error('Delete account error:', error);
+      throw error;
     }
   };
 
   const value = {
     isAuthenticated,
-    user,
     loading,
+    user,
     login,
     signup,
     logout,
-    clearAuth,
-    refreshAuth,
-    isValidEmail,
-    getPasswordStrength,
+    changePassword,
+    deleteAccount
   };
 
   return (
@@ -232,12 +263,12 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};
