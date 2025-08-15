@@ -259,6 +259,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+      
+      // Get stored credentials
+      const storedCredentials = await AsyncStorage.getItem('userCredentials');
+      const credentials = JSON.parse(storedCredentials);
+      
+      // Update user credentials with new profile data
+      if (credentials[user.username]) {
+        credentials[user.username] = {
+          ...credentials[user.username],
+          ...profileData
+        };
+        await AsyncStorage.setItem('userCredentials', JSON.stringify(credentials));
+      }
+      
+      // Update current user state
+      const updatedUser = {
+        ...user,
+        ...profileData
+      };
+      setUser(updatedUser);
+      
+      // Update stored user data
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      
+      console.log('Profile updated successfully');
+      return { success: true, user: updatedUser };
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
   const clearAuth = async () => {
     try {
       // Clear all user data and credentials
@@ -288,6 +326,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     changePassword,
     deleteAccount,
+    updateProfile,
     clearAuth
   };
 
