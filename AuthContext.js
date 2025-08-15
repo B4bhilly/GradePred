@@ -154,6 +154,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      console.log('Logout initiated - clearing user session...');
+      
       // Don't change the global loading state during logout
       // setLoading(true);
       
@@ -164,10 +166,11 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem('userData');
       await AsyncStorage.removeItem('isAuthenticated');
       
-      console.log('Logout successful');
+      console.log('Logout successful - user session cleared');
       return { success: true };
       
     } catch (error) {
+      console.error('Logout error:', error);
       // Don't log the error here - let the calling component handle it
       throw error;
     }
@@ -256,6 +259,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const clearAuth = async () => {
+    try {
+      // Clear all user data and credentials
+      await AsyncStorage.removeItem('userCredentials');
+      await AsyncStorage.removeItem('userData');
+      await AsyncStorage.removeItem('isAuthenticated');
+      
+      // Clear user session
+      setUser(null);
+      setIsAuthenticated(false);
+      
+      console.log('All data cleared and user logged out');
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error clearing auth data:', error);
+      throw error;
+    }
+  };
+
   const value = {
     isAuthenticated,
     loading,
@@ -264,7 +287,8 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    clearAuth
   };
 
   return (

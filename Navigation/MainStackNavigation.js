@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import WelcomeScreen from '../Screens/HomeScreens/GradePredScreen';
 import HomeScreen from '../Screens/WelcomeScreen';
@@ -17,12 +17,13 @@ import { useTheme } from '../ThemeContext';
 
 const Stack = createNativeStackNavigator();
 
-const MainStackNavigator = () => {
+// Component to handle authentication navigation
+const AuthNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
   const { colors, isInitialized } = useTheme();
 
-  console.log('MainStackNavigator - isAuthenticated:', isAuthenticated, 'loading:', loading, 'isInitialized:', isInitialized);
-  console.log('MainStackNavigator - Available routes when authenticated:', isAuthenticated ? ['MainTab', 'Welcome', 'GPA', 'CWA', 'Settings', 'GPAF', 'History'] : ['Home', 'SignUp', 'Login']);
+  console.log('AuthNavigator - isAuthenticated:', isAuthenticated, 'loading:', loading, 'isInitialized:', isInitialized);
+  console.log('AuthNavigator - Current stack:', isAuthenticated ? 'Authenticated' : 'Unauthenticated');
 
   // Show loading screen while checking authentication or theme
   if (loading || !isInitialized || !colors) {
@@ -34,26 +35,40 @@ const MainStackNavigator = () => {
   }
 
   return (
+    <Stack.Navigator 
+      screenOptions={{headerShown: false}}
+    >
+      {isAuthenticated ? (
+        // Authenticated stack
+        <>
+          <Stack.Screen name="MainTab" component={MainTabNavigator} />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="GPA" component={GPAScreen} />
+          <Stack.Screen name="CWA" component={CWAScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="History" component={HistoryScreen} />
+        </>
+      ) : (
+        // Unauthenticated stack
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="SignUp" component={SignupScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+};
+
+const MainStackNavigator = () => {
+  const { colors, isInitialized } = useTheme();
+
+  return (
     <NavigationContainer>
-        <Stack.Navigator 
-          initialRouteName={isAuthenticated ? 'MainTab' : 'Login'} 
-          screenOptions={{headerShown: false}}
-        >
-            {/* Always show all screens, control access through initial route */}
-            <Stack.Screen name="Home" component={HomeScreen} options={{headerShown: false}} />
-            <Stack.Screen name="SignUp" component={SignupScreen} options={{headerShown:false}} />
-            <Stack.Screen name="Login" component={LoginScreen} options={{headerShown:false}} />
-            <Stack.Screen name="MainTab" component={MainTabNavigator} options={{headerShown: false}} />
-            <Stack.Screen name="Welcome" component={WelcomeScreen} options={{headerShown: false}} />
-            <Stack.Screen name="GPA" component={GPAScreen} options={{headerShown: false}} />
-            <Stack.Screen name="CWA" component={CWAScreen} options={{headerShown: false}} />
-            <Stack.Screen name="Settings" component={SettingsScreen} options={{headerShown: false}} />
-            {/* <Stack.Screen name="GPAF" component={GPAScreenF} options={{headerShown: false}} /> */}
-            <Stack.Screen name="History" component={HistoryScreen} options={{headerShown: false}} />
-        </Stack.Navigator>
+      <AuthNavigator />
     </NavigationContainer>
-  )
-}
+  );
+};
 
 export default MainStackNavigator
 
