@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, RefreshControl, ScrollView, SafeAreaView } from 'react-native';
 import React, { useState } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
 import { typography, spacing, borderRadius, shadows, sharedStyles } from '../../designSystem';
@@ -38,39 +38,41 @@ const WelcomeScreen = ({navigation}) => {
   };
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[colors.primary]}
-          tintColor={colors.primary}
-        />
-      }
-    >
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Grade Wizard</Text>
-        <TouchableOpacity onPress={handleNavigaionToSettings} style={styles.settingsButton}>
-          <Feather name="settings" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.content}>
-        <Text style={[styles.greeting, { color: colors.textPrimary }]}>Hi, {user?.username || 'Student'}</Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>Calculate your GPA and CWA with ease. Start by selecting a predictor below.</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView 
+        style={[styles.container, { backgroundColor: colors.background }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Grade Wizard</Text>
+          <TouchableOpacity onPress={handleNavigaionToSettings} style={styles.settingsButton}>
+            <Feather name="settings" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.content}>
+          <Text style={[styles.greeting, { color: colors.textPrimary }]}>Hi, {user?.username || 'Student'}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>Calculate your GPA and CWA with ease. Start by selecting a predictor below.</Text>
 
-        <TouchableOpacity onPress={handleNavigationToGPA} style={[styles.card, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.cardTitle, { color: colors.background }]}>GPA Predictor</Text>
-          <Text style={[styles.cardSubtitle, { color: colors.background }]}>Calculate your Grade Point Average</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleNavigationToGPA} style={[styles.card, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.cardTitle, { color: colors.background }]}>GPA Predictor</Text>
+            <Text style={[styles.cardSubtitle, { color: colors.background }]}>Calculate your Grade Point Average</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleNavigationToCWA} style={[styles.card, { backgroundColor: colors.secondary }]}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>CWA Predictor</Text>
-          <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>Calculate your Cumulative Weighted Average</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <TouchableOpacity onPress={handleNavigationToCWA} style={[styles.card, { backgroundColor: colors.secondary }]}>
+            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>CWA Predictor</Text>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>Calculate your Cumulative Weighted Average</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
@@ -83,7 +85,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: spacing['3xl'],
+    paddingTop: spacing.xl, // Reduced from 3xl to account for SafeAreaView
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },

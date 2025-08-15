@@ -18,21 +18,22 @@ export const AuthProvider = ({ children }) => {
         if (storedUser && storedAuth === 'true') {
           const userData = JSON.parse(storedUser);
           setUser(userData);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
         console.error('Error loading stored credentials:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadStoredCredentials();
   }, []);
 
   const login = async (username, password) => {
     try {
-      setLoading(true);
+      // Don't change the global loading state during login attempts
+      // setLoading(true);
       
       // Validate input
       if (!username || !password) {
@@ -76,16 +77,19 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: userData };
       
     } catch (error) {
-      console.error('Login error:', error);
+      // Don't log the error here - let the calling component handle it
       throw error;
-    } finally {
-      setLoading(false);
     }
+    // Don't change loading state here
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const signup = async (email, password, username) => {
     try {
-      setLoading(true);
+      // Don't change the global loading state during signup attempts
+      // setLoading(true);
       
       // Validate input
       if (!email || !password || !username) {
@@ -139,16 +143,19 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: newUser };
       
     } catch (error) {
-      console.error('Signup error:', error);
+      // Don't log the error here - let the calling component handle it
       throw error;
-    } finally {
-      setLoading(false);
     }
+    // Don't change loading state here
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const logout = async () => {
     try {
-      setLoading(true);
+      // Don't change the global loading state during logout
+      // setLoading(true);
       
       // Clear user session
       setUser(null);
@@ -161,11 +168,13 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
       
     } catch (error) {
-      console.error('Logout error:', error);
+      // Don't log the error here - let the calling component handle it
       throw error;
-    } finally {
-      setLoading(false);
     }
+    // Don't change loading state here
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const changePassword = async (currentPassword, newPassword, confirmNewPassword) => {
@@ -203,7 +212,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
       
     } catch (error) {
-      console.error('Change password error:', error);
+      // Don't log the error here - let the calling component handle it
       throw error;
     }
   };
@@ -242,7 +251,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
       
     } catch (error) {
-      console.error('Delete account error:', error);
+      // Don't log the error here - let the calling component handle it
       throw error;
     }
   };

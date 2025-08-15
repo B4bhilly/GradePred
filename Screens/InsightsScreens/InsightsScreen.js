@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
 import { useML } from '../../MLContext';
 import { typography, spacing, borderRadius, shadows } from '../../designSystem';
 import { useTheme } from '../../ThemeContext';
@@ -327,52 +327,54 @@ export default function InsightsScreen() {
   });
 
   return (
-    <ScrollView style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Academic Insights</Text>
-        <Text style={styles.subtitle}>Personalized recommendations to improve your academic performance</Text>
-      </View>
-
-      {insights.map((item) => (
-        <View key={item.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.icon}>{item.icon}</Text>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={[styles.priority, { backgroundColor: getPriorityColor(item.priority) }]}>
-              {item.priority.toUpperCase()}
-            </Text>
-          </View>
-
-          <Text style={styles.description}>{item.description}</Text>
-
-          {item.recommendations?.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Recommendations</Text>
-              {item.recommendations.map((rec, i) => (
-                <Text key={i} style={styles.bullet}>💡 {rec}</Text>
-              ))}
-            </View>
-          )}
-
-          {item.actionItems?.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Action Items</Text>
-              {item.actionItems.map((a, i) => (
-                <Text key={i} style={styles.bullet}>✅ {a}</Text>
-              ))}
-            </View>
-          )}
-
-          {item.data && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Grade Distribution</Text>
-              {Object.entries(item.data).map(([grade, count]) => (
-                <Text key={grade} style={styles.bullet}>{grade}: {count}</Text>
-              ))}
-            </View>
-          )}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+      <ScrollView style={styles.screen}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Academic Insights</Text>
+          <Text style={styles.subtitle}>Personalized recommendations to improve your academic performance</Text>
         </View>
-      ))}
-    </ScrollView>
+
+        {insights.map((item) => (
+          <View key={item.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.icon}>{item.icon}</Text>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={[styles.priority, { backgroundColor: getPriorityColor(item.priority) }]}>
+                {item.priority.toUpperCase()}
+              </Text>
+            </View>
+
+            <Text style={styles.description}>{item.description}</Text>
+
+            {item.recommendations?.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recommendations</Text>
+                {item.recommendations.map((rec, i) => (
+                  <Text key={i} style={styles.bullet}>💡 {rec}</Text>
+                ))}
+              </View>
+            )}
+
+            {item.actionItems?.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Action Items</Text>
+                {item.actionItems.map((a, i) => (
+                  <Text key={i} style={styles.bullet}>✅ {a}</Text>
+                ))}
+              </View>
+            )}
+
+            {item.data && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Grade Distribution</Text>
+                {Object.entries(item.data).map(([grade, count]) => (
+                  <Text key={grade} style={styles.bullet}>{grade}: {count}</Text>
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }

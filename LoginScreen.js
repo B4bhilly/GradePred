@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from './AuthContext';
@@ -24,26 +25,47 @@ const LoginScreen = ({ navigation }) => {
   const [error, setError] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isHandlingError, setIsHandlingError] = useState(false);
+  
+  // Use refs to preserve form values during error handling
+  const usernameRef = useRef('');
+  const passwordRef = useRef('');
   
   const { login } = useAuth();
   const { colors } = useTheme();
 
+  // Track component lifecycle
+  useEffect(() => {
+    console.log('LoginScreen mounted');
+    return () => {
+      console.log('LoginScreen unmounted');
+    };
+  }, []);
+
   // Clear all errors when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      setUsernameError('');
-      setPasswordError('');
-      setError('');
+      console.log('LoginScreen focused - clearing all errors, isHandlingError:', isHandlingError);
+      if (!isHandlingError) {
+        setUsernameError('');
+        setPasswordError('');
+        setError('');
+      }
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, isHandlingError]);
 
   const handleLogin = async () => {
+    console.log('=== HANDLE LOGIN STARTED ===');
+    console.log('Initial form values - Username:', username, 'Password:', password ? '***' : 'empty');
+    
     // Clear previous errors
     setUsernameError('');
     setPasswordError('');
     setError('');
+    
+    console.log('Cleared all errors at start of login');
 
     let hasValidationError = false;
 
@@ -64,10 +86,13 @@ const LoginScreen = ({ navigation }) => {
     }
 
     try {
+      console.log('Starting login attempt...');
       setLoading(true);
       setError('');
       
+      console.log('Calling login function with username:', username, 'and password:', password ? '***' : 'empty');
       const result = await login(username, password);
+      console.log('Login result:', result);
       
       // Check if login was successful
       if (result && result.success) {
@@ -87,11 +112,56 @@ const LoginScreen = ({ navigation }) => {
       }
       
     } catch (error) {
-      // Display the error message on the page
-      setError(error.message);
+      console.log('=== ERROR CAUGHT IN LOGINSCREEN ===');
+      console.log('Caught error:', error.message); // Debug log
+      console.log('Current form values - Username:', username, 'Password:', password ? '***' : 'empty');
+      
+      setIsHandlingError(true);
+      
+      // Handle incorrect password or other login errors
+      if (error.message === 'Incorrect password') {
+        console.log('Setting password error, clearing general error');
+        setPasswordError('Password is incorrect');
+        setError(''); // Clear any general error immediately
+        setUsernameError(''); // Also clear username error
+        
+        // Restore form values if they were cleared
+        if (!username && usernameRef.current) {
+          console.log('Restoring username from ref:', usernameRef.current);
+          setUsername(usernameRef.current);
+        }
+        if (!password && passwordRef.current) {
+          console.log('Restoring password from ref');
+          setPassword(passwordRef.current);
+        }
+      } else if (error.message === 'Username not found') {
+        console.log('Setting username error, clearing general error');
+        setUsernameError('Username not found');
+        setError(''); // Clear any general error immediately
+        setPasswordError(''); // Also clear password error
+        
+        // Restore form values if they were cleared
+        if (!username && usernameRef.current) {
+          console.log('Restoring username from ref:', usernameRef.current);
+          setUsername(usernameRef.current);
+        }
+        if (!password && passwordRef.current) {
+          console.log('Restoring password from ref');
+          setPassword(passwordRef.current);
+        }
+      } else {
+        console.log('Setting general error, clearing field errors');
+        // Display other errors in the general error container
+        setError(error.message);
+        // Clear field-specific errors
+        setUsernameError('');
+        setPasswordError('');
+      }
       setLoading(false);
       return; // Don't proceed with navigation
     }
+
+
   };
 
   const handleSignupPress = () => {
@@ -100,123 +170,133 @@ const LoginScreen = ({ navigation }) => {
 
   const handleInputChange = (field, value) => {
     if (field === 'username') {
+      console.log('Setting username to:', value);
       setUsername(value);
+      usernameRef.current = value; // Store in ref
       setUsernameError(''); // Clear error when user types
+      setError(''); // Clear general error when user types
+      setIsHandlingError(false); // Reset error handling flag
     } else if (field === 'password') {
+      console.log('Setting password to:', value ? '***' : 'empty');
       setPassword(value);
+      passwordRef.current = value; // Store in ref
       setPasswordError(''); // Clear error when user types
+      setError(''); // Clear general error when user types
+      setIsHandlingError(false); // Reset error handling flag
     }
   };
 
   return (
-    <ImageBackground
-      source={require('./assets/images/doodle.jpg')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    <SafeAreaView style={{ flex: 1 }}>
+      <ImageBackground
+        source={require('./assets/images/doodle.jpg')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView 
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {/* Centered Blurred Form Container */}
-          <View style={styles.formContainer}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Log in to continue to GradePred</Text>
-            </View>
-
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                {/* <Text style={styles.label}>Username</Text> */}
-                <TextInput
-                  style={[
-                    styles.input,
-                    usernameError ? styles.inputError : null
-                  ]}
-                  placeholder="Username"
-                  placeholderTextColor="black"
-                  value={username}
-                  onChangeText={(value) => handleInputChange('username', value)}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {usernameError ? (
-                  <Text style={styles.errorText}>{usernameError}</Text>
-                ) : null}
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Centered Blurred Form Container */}
+            <View style={styles.formContainer}>
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.title}>Welcome Back</Text>
+                <Text style={styles.subtitle}>Log in to continue to GradePred</Text>
               </View>
 
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                {/* <Text style={styles.label}>Password</Text> */}
-                <View style={[
-                  styles.passwordContainer,
-                  passwordError ? styles.inputError : null
-                ]}>
+              <View style={styles.form}>
+                <View style={styles.inputContainer}>
+                  {/* <Text style={styles.label}>Username</Text> */}
                   <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Password"
+                    style={[
+                      styles.input,
+                      usernameError ? styles.inputError : null
+                    ]}
+                    placeholder="Username"
                     placeholderTextColor="black"
-                    value={password}
-                    onChangeText={(value) => handleInputChange('password', value)}
-                    secureTextEntry={!showPassword}
+                    value={username}
+                    onChangeText={(value) => handleInputChange('username', value)}
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Ionicons 
-                      name={showPassword ? "eye-off" : "eye"} 
-                      size={24} 
-                      color={colors.textSecondary} 
+                  {usernameError ? (
+                    <Text style={styles.errorText}>{usernameError}</Text>
+                  ) : null}
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.inputContainer}>
+                  {/* <Text style={styles.label}>Password</Text> */}
+                  <View style={[
+                    styles.passwordContainer,
+                    passwordError ? styles.inputError : null
+                  ]}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Password"
+                      placeholderTextColor="black"
+                      value={password}
+                      onChangeText={(value) => handleInputChange('password', value)}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
                     />
+                    <TouchableOpacity
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons 
+                        name={showPassword ? "eye-off" : "eye"} 
+                        size={24} 
+                        color={colors.textSecondary} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {passwordError ? (
+                    <Text style={styles.errorText}>{passwordError}</Text>
+                  ) : null}
+                </View>
+
+                {/* contains the styles for the error message */}
+                {error ? (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null} 
+                
+                <TouchableOpacity
+                  style={[styles.loginButton, loading && styles.buttonDisabled]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Log In</Text>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.signupContainer}>
+                  <Text style={styles.signupText}>
+                    Don't have an account?{' '}
+                  </Text>
+                  <TouchableOpacity onPress={handleSignupPress}>
+                    <Text style={styles.signupLink}>Sign Up</Text>
                   </TouchableOpacity>
                 </View>
-                {passwordError ? (
-                  <Text style={styles.errorText}>{passwordError}</Text>
-                ) : null}
-              </View>
-
-              {/* contains the styles for the error message */}
-              {error ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null} 
-
-              <TouchableOpacity
-                style={[styles.loginButton, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Log In</Text>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>
-                  Don't have an account?{' '}
-                </Text>
-                <TouchableOpacity onPress={handleSignupPress}>
-                  <Text style={styles.signupLink}>Sign Up</Text>
-                </TouchableOpacity>
               </View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
@@ -234,6 +314,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    paddingTop: spacing.xl * 2, // Extra top padding for status bar
+    paddingBottom: spacing.xl * 2, // Extra bottom padding for navigation
   },
   formContainer: {
     width: '100%',
@@ -252,11 +334,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 15,
+    marginVertical: spacing.xl, // Add vertical margin for better spacing
   },
   header: {
     alignItems: 'center',
     marginBottom: spacing.xl * 2,
-    marginTop: spacing.xl * 2,
+    marginTop: spacing.xl, // Reduced top margin since we have paddingTop in scrollContainer
   },
   title: {
     fontSize: 32,

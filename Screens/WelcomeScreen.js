@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
 import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { typography, spacing, borderRadius, shadows } from '../designSystem';
@@ -25,35 +25,37 @@ const HomeScreen = ({navigation}) => {
     };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient
-          colors={[colors.primary, colors.textPrimary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.gradient}
-        >
-            <View style={[styles.content, { backgroundColor: colors.background }]}>
-                <Text style={[styles.title, { color: colors.textPrimary }]}>Grade Predictor</Text>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Predict your academic future.</Text>
-                
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity 
-                        style={[styles.primaryButton, { backgroundColor: colors.primary }]} 
-                        onPress={handleNavigationToSignup}
-                    >
-                        <Text style={[styles.primaryButtonText, { color: colors.background }]}>Get Started</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                        style={[styles.secondaryButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]} 
-                        onPress={handleNavigationToLogin}
-                    >
-                        <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Log In</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </LinearGradient>
-    </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <LinearGradient
+            colors={[colors.primary, colors.textPrimary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradient}
+          >
+              <View style={[styles.content, { backgroundColor: colors.background }]}>
+                  <Text style={[styles.title, { color: colors.textPrimary }]}>Grade Predictor</Text>
+                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Predict your academic future.</Text>
+                  
+                  <View style={styles.buttonContainer}>
+                      <TouchableOpacity 
+                          style={[styles.primaryButton, { backgroundColor: colors.primary }]} 
+                          onPress={handleNavigationToSignup}
+                      >
+                          <Text style={[styles.primaryButtonText, { color: colors.background }]}>Get Started</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                          style={[styles.secondaryButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]} 
+                          onPress={handleNavigationToLogin}
+                      >
+                          <Text style={[styles.secondaryButtonText, { color: colors.textPrimary }]}>Log In</Text>
+                      </TouchableOpacity>
+                  </View>
+              </View>
+          </LinearGradient>
+      </View>
+    </SafeAreaView>
   )
 }
 
@@ -78,6 +80,8 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: borderRadius.xl,
         borderTopRightRadius: borderRadius.xl,
         paddingHorizontal: spacing.lg,
+        paddingTop: spacing.xl * 2, // Extra top padding for status bar
+        paddingBottom: spacing.xl * 2, // Extra bottom padding for navigation
     },
     title: {
         fontSize: typography['3xl'],

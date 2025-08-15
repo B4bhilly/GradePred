@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from './AuthContext';
@@ -182,174 +183,176 @@ const SignupScreen = ({ navigation }) => {
   };
 
   return (
-    <ImageBackground
-      source={require('./assets/images/doodle.jpg')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    <SafeAreaView style={{ flex: 1 }}>
+      <ImageBackground
+        source={require('./assets/images/doodle.jpg')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView 
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {/* Centered Blurred Form Container */}
-          <View style={styles.formContainer}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Sign up to get started with GradePred</Text>
-            </View>
-
-            <View style={styles.form}>
-              {/* Username Input */}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    form.username.trim() === '' && (emailError || passwordError || confirmPasswordError) ? styles.inputError : null
-                  ]}
-                  placeholder="Username"
-                  placeholderTextColor="black"
-                  value={form.username}
-                  onChangeText={(value) => handleChange('username', value)}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
-                {form.username.trim() === '' && (emailError || passwordError || confirmPasswordError) ? (
-                  <Text style={styles.errorText}>Username is required</Text>
-                ) : null}
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Centered Blurred Form Container */}
+            <View style={styles.formContainer}>
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.title}>Create Account</Text>
+                <Text style={styles.subtitle}>Sign up to get started with GradePred</Text>
               </View>
 
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[
-                    styles.input,
-                    emailError ? styles.inputError : null
-                  ]}
-                  placeholder="Email"
-                  placeholderTextColor="black"
-                  value={form.email}
-                  onChangeText={(value) => handleChange('email', value)}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoCorrect={false}
-                />
-                {emailError ? (
-                  <Text style={styles.errorText}>{emailError}</Text>
-                ) : null}
-              </View>
-
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <View style={[
-                  styles.passwordContainer,
-                  passwordError ? styles.inputError : null
-                ]}>
+              <View style={styles.form}>
+                {/* Username Input */}
+                <View style={styles.inputContainer}>
                   <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Password"
+                    style={[
+                      styles.input,
+                      form.username.trim() === '' && (emailError || passwordError || confirmPasswordError) ? styles.inputError : null
+                    ]}
+                    placeholder="Username"
                     placeholderTextColor="black"
-                    value={form.password}
-                    onChangeText={(value) => handleChange('password', value)}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
+                    value={form.username}
+                    onChangeText={(value) => handleChange('username', value)}
+                    autoCapitalize="words"
                     autoCorrect={false}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Ionicons 
-                      name={showPassword ? "eye-off" : "eye"} 
-                      size={24} 
-                      color={colors.textSecondary} 
-                    />
-                  </TouchableOpacity>
+                  {form.username.trim() === '' && (emailError || passwordError || confirmPasswordError) ? (
+                    <Text style={styles.errorText}>Username is required</Text>
+                  ) : null}
                 </View>
-                {form.password ? (
-                  <View style={styles.passwordStrengthContainer}>
-                    <Text style={styles.passwordStrengthText}>
-                      Password strength: <Text style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</Text>
-                    </Text>
+
+                {/* Email Input */}
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      emailError ? styles.inputError : null
+                    ]}
+                    placeholder="Email"
+                    placeholderTextColor="black"
+                    value={form.email}
+                    onChangeText={(value) => handleChange('email', value)}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoCorrect={false}
+                  />
+                  {emailError ? (
+                    <Text style={styles.errorText}>{emailError}</Text>
+                  ) : null}
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.passwordContainer,
+                    passwordError ? styles.inputError : null
+                  ]}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Password"
+                      placeholderTextColor="black"
+                      value={form.password}
+                      onChangeText={(value) => handleChange('password', value)}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeIcon}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons 
+                        name={showPassword ? "eye-off" : "eye"} 
+                        size={24} 
+                        color={colors.textSecondary} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {form.password ? (
+                    <View style={styles.passwordStrengthContainer}>
+                      <Text style={styles.passwordStrengthText}>
+                        Password strength: <Text style={{ color: getPasswordStrengthColor() }}>{getPasswordStrengthText()}</Text>
+                      </Text>
+                    </View>
+                  ) : null}
+                  {passwordError ? (
+                    <Text style={styles.errorText}>{passwordError}</Text>
+                  ) : null}
+                </View>
+
+                {/* Confirm Password Input */}
+                <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.passwordContainer,
+                    confirmPasswordError ? styles.inputError : null
+                  ]}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Confirm Password"
+                      placeholderTextColor="black"
+                      value={form.confirmPassword}
+                      onChangeText={(value) => handleChange('confirmPassword', value)}
+                      secureTextEntry={!showConfirmPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeIcon}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <Ionicons 
+                        name={showConfirmPassword ? "eye-off" : "eye"} 
+                        size={24} 
+                        color={colors.textSecondary} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {confirmPasswordError ? (
+                    <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                  ) : null}
+                </View>
+
+                {/* General Error Display */}
+                {error ? (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
                   </View>
                 ) : null}
-                {passwordError ? (
-                  <Text style={styles.errorText}>{passwordError}</Text>
-                ) : null}
-              </View>
 
-              {/* Confirm Password Input */}
-              <View style={styles.inputContainer}>
-                <View style={[
-                  styles.passwordContainer,
-                  confirmPasswordError ? styles.inputError : null
-                ]}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Confirm Password"
-                    placeholderTextColor="black"
-                    value={form.confirmPassword}
-                    onChangeText={(value) => handleChange('confirmPassword', value)}
-                    secureTextEntry={!showConfirmPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    <Ionicons 
-                      name={showConfirmPassword ? "eye-off" : "eye"} 
-                      size={24} 
-                      color={colors.textSecondary} 
-                    />
+                {/* Sign Up Button */}
+                <TouchableOpacity
+                  style={[styles.loginButton, loading && styles.buttonDisabled]}
+                  onPress={handleSignup}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Create Account</Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Login Link */}
+                <View style={styles.signupContainer}>
+                  <Text style={styles.signupText}>
+                    Already have an account?{' '}
+                  </Text>
+                  <TouchableOpacity onPress={handleNavigationToLogin}>
+                    <Text style={styles.signupLink}>Sign In</Text>
                   </TouchableOpacity>
                 </View>
-                {confirmPasswordError ? (
-                  <Text style={styles.errorText}>{confirmPasswordError}</Text>
-                ) : null}
-              </View>
-
-              {/* General Error Display */}
-              {error ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-
-              {/* Sign Up Button */}
-              <TouchableOpacity
-                style={[styles.loginButton, loading && styles.buttonDisabled]}
-                onPress={handleSignup}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Create Account</Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Login Link */}
-              <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>
-                  Already have an account?{' '}
-                </Text>
-                <TouchableOpacity onPress={handleNavigationToLogin}>
-                  <Text style={styles.signupLink}>Sign In</Text>
-                </TouchableOpacity>
               </View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
@@ -367,6 +370,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    paddingTop: spacing.xl * 2, // Extra top padding for status bar
+    paddingBottom: spacing.xl * 2, // Extra bottom padding for navigation
   },
   formContainer: {
     width: '100%',
@@ -385,11 +390,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 15,
+    marginVertical: spacing.xl, // Add vertical margin for better spacing
   },
   header: {
     alignItems: 'center',
     marginBottom: spacing.xl * 2,
-    marginTop: spacing.xl * 2,
+    marginTop: spacing.xl, // Reduced top margin since we have paddingTop in scrollContainer
   },
   title: {
     fontSize: 32,

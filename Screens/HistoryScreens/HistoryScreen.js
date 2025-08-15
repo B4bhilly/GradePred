@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  Modal, Alert, ScrollView, Share, Platform, RefreshControl
+  Modal, Alert, ScrollView, Share, Platform, RefreshControl, SafeAreaView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useML } from '../../MLContext';
@@ -843,7 +843,7 @@ export default function HistoryScreen() {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
       <View style={[styles.header, { backgroundColor: themeColors.background }]}>
         <View style={styles.headerTop}>
           <Text style={[styles.title, { color: themeColors.textPrimary }]}>Academic History</Text>
@@ -1239,6 +1239,6 @@ export default function HistoryScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
