@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, Linking } from 'react-native';
 import React from 'react';
-import AntDesign from 'react-native-vector-icons/AntDesign';
+import {AntDesign, SimpleLineIcons} from 'react-native-vector-icons';
 import { typography, spacing, borderRadius } from '../../designSystem';
 import { useTheme } from '../../ThemeContext';
 
@@ -92,7 +92,7 @@ const AboutScreen = ({ navigation }) => {
             onPress={() => openLink('https://gradepredictor.com')}
           >
             <View style={[styles.linkIcon, { backgroundColor: themeColors.backgroundSecondary }]}>
-              <AntDesign name="globe" size={20} color={themeColors.primary} />
+              <SimpleLineIcons name="globe" size={20} color={themeColors.primary} />
             </View>
             <View style={styles.linkContent}>
               <Text style={[styles.linkTitle, { color: themeColors.textPrimary }]}>Website</Text>

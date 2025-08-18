@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert } from 'react-native';
 import React, { useState } from 'react';
-import { Feather, AntDesign, Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from 'react-native-vector-icons';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Feather from 'react-native-vector-icons/Feather';
 import { typography, spacing, borderRadius } from '../../designSystem';
 import { useTheme } from '../../ThemeContext';
 
@@ -19,30 +20,11 @@ const FeedbackScreen = ({ navigation }) => {
   }
 
   const feedbackTypes = [
-    { id: 'general', label: 'General Feedback', icon: 'message1', library: 'AntDesign' },
-    { id: 'bug', label: 'Bug Report', icon: 'bug-outline', library: 'Ionicons' },
-    { id: 'feature', label: 'Feature Request', icon: 'bulb1', library: 'AntDesign' },
-    { id: 'support', label: 'Technical Support', icon: 'customerservice', library: 'AntDesign' },
+    { id: 'general', label: 'General Feedback', icon: 'message1' },
+    { id: 'bug', label: 'Bug Report', icon: 'bug' },
+    { id: 'feature', label: 'Feature Request', icon: 'bulb1' },
+    { id: 'support', label: 'Technical Support', icon: 'customerservice' },
   ];
-
-  const renderIcon = (type) => {
-    const { icon, library } = type;
-    const iconSize = 20;
-    const iconColor = feedbackType === type.id ? themeColors.primary : themeColors.textSecondary;
-    
-    switch (library) {
-      case 'AntDesign':
-        return <AntDesign name={icon} size={iconSize} color={iconColor} />;
-      case 'Ionicons':
-        return <Ionicons name={icon} size={iconSize} color={iconColor} />;
-      case 'FontAwesome5':
-        return <FontAwesome5 name={icon} size={iconSize} color={iconColor} />;
-      case 'MaterialCommunityIcons':
-        return <MaterialCommunityIcons name={icon} size={iconSize} color={iconColor} />;
-      default:
-        return <AntDesign name={icon} size={iconSize} color={iconColor} />;
-    }
-  };
 
   const handleSubmit = () => {
     if (!message.trim()) {
@@ -110,7 +92,11 @@ const FeedbackScreen = ({ navigation }) => {
                 ]}
                 onPress={() => setFeedbackType(type.id)}
               >
-                {renderIcon(type)}
+                <AntDesign 
+                  name={type.icon} 
+                  size={20} 
+                  color={feedbackType === type.id ? themeColors.primary : themeColors.textSecondary} 
+                />
                 <Text style={[
                   styles.feedbackTypeText, 
                   { color: feedbackType === type.id ? themeColors.primary : themeColors.textSecondary }
