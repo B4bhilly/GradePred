@@ -4,7 +4,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../../components/designSystem';
 import { useML } from '../../MLContext';
 import { useTheme } from '../../ThemeContext';
 

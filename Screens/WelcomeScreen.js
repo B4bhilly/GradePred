@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
 import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { typography, spacing, borderRadius, shadows } from '../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../components/designSystem';
 import { useTheme } from '../ThemeContext';
 
 const HomeScreen = ({navigation}) => {

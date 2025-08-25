@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, Swi
 import React, { useState } from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Feather from 'react-native-vector-icons/Feather';
-import { typography, spacing, borderRadius } from '../../designSystem';
+import { typography, spacing, borderRadius } from '../../components/designSystem';
 import { useTheme } from '../../ThemeContext';
 
 const PrivacyScreen = ({ navigation }) => {

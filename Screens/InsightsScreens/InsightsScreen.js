@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
 import { useML } from '../../MLContext';
-import { typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../../components/designSystem';
 import { useTheme } from '../../ThemeContext';
 
 export default function InsightsScreen() {

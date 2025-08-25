@@ -6,7 +6,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { useML } from '../../MLContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { typography, spacing, borderRadius, shadows } from '../../designSystem';
+import { typography, spacing, borderRadius, shadows } from '../../components/designSystem';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../../ThemeContext';
 

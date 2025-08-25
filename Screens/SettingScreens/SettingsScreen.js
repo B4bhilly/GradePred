@@ -1,8 +1,13 @@
 import { StyleSheet, Text, View, TouchableOpacity, Switch, Alert, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import React, { useState } from 'react';
-import { AntDesign, FontAwesome5, Feather, MaterialCommunityIcons, Ionicons } from 'react-native-vector-icons';
-import { typography, spacing, borderRadius } from '../../designSystem';
-import { useAuth } from '../../AuthContext';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import Feather from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { typography, spacing, borderRadius } from '../../components/designSystem';
+import { useAuth } from '../../components/AuthContext';
 import { useTheme } from '../../ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -212,8 +217,8 @@ const SettingsScreen = ({ navigation }) => {
           color: '#3B82F6'
         },
         {
-          icon: 'question-circle',
-          iconType: 'AntDesign',
+          icon: 'feedback',
+          iconType: 'MaterialIcons',
           title: 'Feedback & Support',
           subtitle: 'Get help and send feedback',
           action: 'navigate',
@@ -258,6 +263,8 @@ const SettingsScreen = ({ navigation }) => {
         return <Ionicons name={icon} {...iconProps} />;
       default:
         return <Feather name={icon} {...iconProps} />;
+      case 'MaterialIcons':
+        return <MaterialIcons name={icon} {...iconProps} />;
     }
   };
 
@@ -270,40 +277,40 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
       {/* Simple Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <AntDesign name="arrowleft" size={24} color="#1f2937" />
+          <AntDesign name="arrowleft" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Settings</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* User Profile Section */}
-        <View style={styles.userSection}>
+        <View style={[styles.userSection, { backgroundColor: themeColors.backgroundSecondary }]}>
           <TouchableOpacity 
             style={styles.userProfileContainer}
             onPress={() => navigation.navigate('ProfileEdit')}
           >
-            <View style={styles.userAvatar}>
+            <View style={[styles.userAvatar, { backgroundColor: themeColors.primary }]}>
               <Text style={styles.userInitial}>
                 {user?.username?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>
+              <Text style={[styles.userName, { color: themeColors.textPrimary }]}>
                 {user?.username || 'User'}
               </Text>
-              <Text style={styles.userEmail}>
+              <Text style={[styles.userEmail, { color: themeColors.textSecondary }]}>
                 {user?.email || 'user@example.com'}
               </Text>
               <View style={styles.editProfileButton}>
-                <Text style={styles.editProfileText}>Edit Profile</Text>
-                <AntDesign name="arrowright" size={16} color="#2563eb" />
+                <Text style={[styles.editProfileText, { color: themeColors.primary }]}>Edit Profile</Text>
+                <AntDesign name="arrowright" size={16} color={themeColors.primary} />
               </View>
             </View>
           </TouchableOpacity>
@@ -312,16 +319,16 @@ const SettingsScreen = ({ navigation }) => {
         {/* Settings Sections */}
         {settingsSections.map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>{section.title}</Text>
             
-            <View style={styles.sectionContainer}>
+            <View style={[styles.sectionContainer, { backgroundColor: themeColors.backgroundSecondary }]}>
               {section.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
                   style={[
                     styles.settingItem,
                     itemIndex < section.items.length - 1 && { 
-                      borderBottomColor: '#e5e7eb',
+                      borderBottomColor: themeColors.border,
                       borderBottomWidth: 1 
                     }
                   ]}
@@ -333,20 +340,20 @@ const SettingsScreen = ({ navigation }) => {
                   </View>
                   
                   <View style={styles.settingContent}>
-                    <Text style={styles.settingTitle}>{item.title}</Text>
-                    <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+                    <Text style={[styles.settingTitle, { color: themeColors.textPrimary }]}>{item.title}</Text>
+                    <Text style={[styles.settingSubtitle, { color: themeColors.textSecondary }]}>{item.subtitle}</Text>
                   </View>
 
                   {item.action === 'toggle' ? (
                     <Switch
-                      trackColor={{ false: '#e5e7eb', true: item.color + '40' }}
-                      thumbColor={item.value ? item.color : '#ffffff'}
-                      ios_backgroundColor="#e5e7eb"
+                      trackColor={{ false: themeColors.border, true: item.color + '40' }}
+                      thumbColor={item.value ? item.color : themeColors.background}
+                      ios_backgroundColor={themeColors.border}
                       onValueChange={item.onToggle}
                       value={item.value}
                     />
                   ) : item.action !== 'none' ? (
-                    <AntDesign name="arrowright" size={20} color="#6B7280" />
+                    <AntDesign name="arrowright" size={20} color={themeColors.textSecondary} />
                   ) : null}
                 </TouchableOpacity>
               ))}
@@ -356,7 +363,7 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* Quick Actions Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
             {[
               { icon: 'download', title: 'Export Data', color: '#10B981', onPress: handleExportData },
@@ -366,13 +373,13 @@ const SettingsScreen = ({ navigation }) => {
             ].map((action, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.quickAction}
+                style={[styles.quickAction, { backgroundColor: themeColors.backgroundSecondary }]}
                 onPress={action.onPress}
               >
                 <View style={[styles.quickActionIcon, { backgroundColor: action.color + '20' }]}>
                   <Feather name={action.icon} size={24} color={action.color} />
                 </View>
-                <Text style={styles.quickActionText}>{action.title}</Text>
+                <Text style={[styles.quickActionText, { color: themeColors.textPrimary }]}>{action.title}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -380,19 +387,19 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* Account Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Actions</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Account Actions</Text>
           
-          <View style={styles.accountActionsContainer}>
+          <View style={[styles.accountActionsContainer, { backgroundColor: themeColors.backgroundSecondary }]}>
             <TouchableOpacity 
-              style={[styles.accountAction, { borderBottomColor: '#e5e7eb' }]} 
+              style={[styles.accountAction, { borderBottomColor: themeColors.border }]} 
               onPress={handleLogout}
             >
               <View style={[styles.accountActionIcon, { backgroundColor: '#EF4444' + '20' }]}>
                 <Ionicons name="log-out-outline" size={24} color="#EF4444" />
               </View>
               <View style={styles.accountActionContent}>
-                <Text style={styles.accountActionTitle}>Logout</Text>
-                <Text style={styles.accountActionSubtitle}>Sign out of your account</Text>
+                <Text style={[styles.accountActionTitle, { color: themeColors.textPrimary }]}>Logout</Text>
+                <Text style={[styles.accountActionSubtitle, { color: themeColors.textSecondary }]}>Sign out of your account</Text>
               </View>
             </TouchableOpacity>
 
@@ -405,7 +412,7 @@ const SettingsScreen = ({ navigation }) => {
               </View>
               <View style={styles.accountActionContent}>
                 <Text style={[styles.accountActionTitle, { color: '#EF4444' }]}>Delete Account</Text>
-                <Text style={styles.accountActionSubtitle}>Permanently delete your account and data</Text>
+                <Text style={[styles.accountActionSubtitle, { color: themeColors.textSecondary }]}>Permanently delete your account and data</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -413,8 +420,8 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* App Info Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Grade Predictor v1.0.0</Text>
-          <Text style={styles.footerText}>Made with ❤️ for students</Text>
+          <Text style={[styles.footerText, { color: themeColors.textSecondary }]}>Grade Predictor</Text>
+          <Text style={[styles.footerText, { color: themeColors.textSecondary }]}>Made with ❤️ for students</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -427,7 +434,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: spacing['3xl'],
+    paddingTop: spacing['1xl'],
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
@@ -443,6 +450,7 @@ const styles = StyleSheet.create({
     fontSize: typography['2xl'],
     fontWeight: typography.bold,
     textAlign: 'center',
+    right : 20,
   },
   content: {
     flex: 1,
@@ -452,7 +460,6 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
-    backgroundColor: '#f8fafc',
   },
   userProfileContainer: {
     flexDirection: 'row',
@@ -465,7 +472,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.lg,
-    backgroundColor: '#2563eb',
   },
   userInitial: {
     fontSize: typography['2xl'],
@@ -479,12 +485,10 @@ const styles = StyleSheet.create({
     fontSize: typography.xl,
     fontWeight: typography.bold,
     marginBottom: spacing.xs,
-    color: '#1f2937',
   },
   userEmail: {
     fontSize: typography.base,
     marginBottom: spacing.sm,
-    color: '#4b5563',
   },
   editProfileButton: {
     flexDirection: 'row',
@@ -494,7 +498,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     fontWeight: typography.medium,
     marginRight: spacing.xs,
-    color: '#2563eb',
   },
   section: {
     marginBottom: spacing.xl,
@@ -504,12 +507,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.bold,
     marginBottom: spacing.md,
     marginLeft: spacing.sm,
-    color: '#1f2937',
   },
   sectionContainer: {
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    backgroundColor: '#f8fafc',
   },
   settingItem: {
     flexDirection: 'row',
@@ -532,12 +533,10 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     fontWeight: typography.medium,
     marginBottom: spacing.xs,
-    color: '#1f2937',
   },
   settingSubtitle: {
     fontSize: typography.sm,
     lineHeight: 18,
-    color: '#4b5563',
   },
   quickActionsGrid: {
     flexDirection: 'row',
@@ -549,7 +548,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.lg,
-    backgroundColor: '#f8fafc',
   },
   quickActionIcon: {
     width: 48,
@@ -563,12 +561,10 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     fontWeight: typography.medium,
     textAlign: 'center',
-    color: '#1f2937',
   },
   accountActionsContainer: {
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    backgroundColor: '#f8fafc',
   },
   accountAction: {
     flexDirection: 'row',
@@ -592,12 +588,10 @@ const styles = StyleSheet.create({
     fontSize: typography.base,
     fontWeight: typography.medium,
     marginBottom: spacing.xs,
-    color: '#1f2937',
   },
   accountActionSubtitle: {
     fontSize: typography.sm,
     lineHeight: 18,
-    color: '#4b5563',
   },
   footer: {
     alignItems: 'center',
@@ -608,6 +602,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     textAlign: 'center',
     marginBottom: spacing.xs,
-    color: '#4b5563',
   },
 });

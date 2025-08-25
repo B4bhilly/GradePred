@@ -2,9 +2,9 @@ import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, Tex
 import React, { useState } from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Feather from 'react-native-vector-icons/Feather';
-import { typography, spacing, borderRadius } from '../../designSystem';
+import { typography, spacing, borderRadius } from '../../components/designSystem';
 import { useTheme } from '../../ThemeContext';
-import { useAuth } from '../../AuthContext';
+import { useAuth } from '../../components/AuthContext';
 
 const ProfileEditScreen = ({ navigation }) => {
   const { colors: themeColors, isInitialized } = useTheme();
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: spacing['3xl'],
+    paddingTop: spacing['1xl'],
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,

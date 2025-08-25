@@ -13,9 +13,9 @@ import {
   SafeAreaView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import { spacing, borderRadius, shadows } from './designSystem';
+import { useAuth } from '../components/AuthContext';
+import { useTheme } from '../ThemeContext';
+import { spacing, borderRadius, shadows } from '../components/designSystem';
 
 const SignupScreen = ({ navigation }) => {
   const [form, setForm] = useState({
@@ -185,7 +185,7 @@ const SignupScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
-        source={require('./assets/images/doodle.jpg')}
+        source={require('../assets/images/doodle.jpg')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >

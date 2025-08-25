@@ -11,11 +11,13 @@ import {
   ScrollView,
   ActivityIndicator,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import { spacing, borderRadius, shadows } from './designSystem';
+import { useAuth } from '../components/AuthContext';
+import { useTheme } from '../ThemeContext';
+import { spacing, borderRadius, shadows } from '../components/designSystem';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -26,13 +28,35 @@ const LoginScreen = ({ navigation }) => {
   const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isHandlingError, setIsHandlingError] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   // Use refs to preserve form values during error handling
   const usernameRef = useRef('');
   const passwordRef = useRef('');
   
-  const { login } = useAuth();
+  const { login, checkRememberMe, getRememberedCredentials } = useAuth();
   const { colors } = useTheme();
+
+  // Load remembered credentials on component mount
+  useEffect(() => {
+    const loadRememberedCredentials = async () => {
+      try {
+        const remembered = await checkRememberMe();
+        if (remembered) {
+          const credentials = await getRememberedCredentials();
+          if (credentials && credentials.username && credentials.password) {
+            setUsername(credentials.username);
+            setPassword(credentials.password);
+            setRememberMe(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading remembered credentials:', error);
+      }
+    };
+
+    loadRememberedCredentials();
+  }, [checkRememberMe, getRememberedCredentials]);
 
   // Track component lifecycle
   useEffect(() => {
@@ -94,8 +118,20 @@ const LoginScreen = ({ navigation }) => {
       const result = await login(username, password);
       console.log('Login result:', result);
       
-      // Check if login was successful
+      // Handle remember me functionality
       if (result && result.success) {
+        if (rememberMe) {
+          // Save credentials for future use
+          await AsyncStorage.setItem('rememberMe', 'true');
+          await AsyncStorage.setItem('rememberedUsername', username);
+          await AsyncStorage.setItem('rememberedPassword', password);
+        } else {
+          // Clear any previously saved credentials
+          await AsyncStorage.removeItem('rememberMe');
+          await AsyncStorage.removeItem('rememberedUsername');
+          await AsyncStorage.removeItem('rememberedPassword');
+        }
+        
         // Add delay to ensure state updates are processed
         setTimeout(() => {
           try {
@@ -161,7 +197,20 @@ const LoginScreen = ({ navigation }) => {
       return; // Don't proceed with navigation
     }
 
+  };
 
+  const handleForgotPassword = () => {
+    if (!username.trim()) {
+      Alert.alert(
+        'Username Required',
+        'Please enter your username first to reset your password.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Navigate to forgot password screen with username pre-filled
+    navigation.navigate('ForgotPassword', { username });
   };
 
   const handleSignupPress = () => {
@@ -189,7 +238,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ImageBackground
-        source={require('./assets/images/doodle.jpg')}
+        source={require('../assets/images/doodle.jpg')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
@@ -262,6 +311,33 @@ const LoginScreen = ({ navigation }) => {
                   {passwordError ? (
                     <Text style={styles.errorText}>{passwordError}</Text>
                   ) : null}
+                </View>
+
+                {/* Remember Me and Forgot Password Row */}
+                <View style={styles.optionsRow}>
+                  <TouchableOpacity 
+                    style={styles.rememberMeContainer}
+                    onPress={() => setRememberMe(!rememberMe)}
+                  >
+                    <View style={styles.checkboxContainer}>
+                      <View style={[
+                        styles.checkbox,
+                        rememberMe && styles.checkboxChecked
+                      ]}>
+                        {rememberMe && (
+                          <Ionicons name="checkmark" size={16} color="white" />
+                        )}
+                      </View>
+                      <Text style={styles.rememberMeText}>Remember me</Text>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.forgotPasswordContainer}
+                    onPress={handleForgotPassword}
+                  >
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                  </TouchableOpacity>
                 </View>
 
                 {/* contains the styles for the error message */}
@@ -396,6 +472,7 @@ const styles = StyleSheet.create({
     color: 'black',
     backgroundColor: 'transparent',
     borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
   },
   eyeIcon: {
     padding: spacing.sm,
@@ -447,6 +524,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#60a5fa',
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: '#60a5fa',
+    borderColor: '#60a5fa',
+  },
+  rememberMeText: {
+    fontSize: 14,
+    color: 'black',
+  },
+  forgotPasswordContainer: {
+    paddingVertical: spacing.sm,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#60a5fa',
+    textDecorationLine: 'underline',
   },
 });
 

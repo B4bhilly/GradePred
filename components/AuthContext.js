@@ -317,6 +317,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const checkRememberMe = async () => {
+    try {
+      const remembered = await AsyncStorage.getItem('rememberMe');
+      return remembered === 'true';
+    } catch (error) {
+      console.error('Error checking remember me:', error);
+      return false;
+    }
+  };
+
+  const getRememberedCredentials = async () => {
+    try {
+      const remembered = await AsyncStorage.getItem('rememberMe');
+      if (remembered === 'true') {
+        const username = await AsyncStorage.getItem('rememberedUsername');
+        const password = await AsyncStorage.getItem('rememberedPassword');
+        return { username, password };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting remembered credentials:', error);
+      return null;
+    }
+  };
+
   const value = {
     isAuthenticated,
     loading,
@@ -327,7 +352,9 @@ export const AuthProvider = ({ children }) => {
     changePassword,
     deleteAccount,
     updateProfile,
-    clearAuth
+    clearAuth,
+    checkRememberMe,
+    getRememberedCredentials
   };
 
   return (

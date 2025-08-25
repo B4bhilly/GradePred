@@ -2,9 +2,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import React, { useEffect } from 'react';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import WelcomeScreen from '../Screens/HomeScreens/GradePredScreen';
-import HomeScreen from '../Screens/WelcomeScreen';
-import MainTabNavigator from '../Screens/MainTab';
+import GradePredScreen from '../Screens/HomeScreens/GradePredScreen';
+import WelcomeScreen from '../Screens/WelcomeScreen';
+import MainTabNavigator from './MainTab';
 import GPAScreen from '../Screens/HomeScreens/GPAScreen';
 import CWAScreen from '../Screens/HomeScreens/CWAScreen';
 import SettingsScreen from '../Screens/SettingScreens/SettingsScreen';
@@ -18,9 +18,10 @@ import NotificationsScreen from '../Screens/SettingScreens/NotificationsScreen';
 import LanguageScreen from '../Screens/SettingScreens/LanguageScreen';
 // import GPAScreenF from '../Screens/HomeScreens/GPAScreenF';
 import HistoryScreen from '../Screens/HistoryScreens/HistoryScreen';
-import LoginScreen from '../LoginScreen';
-import SignupScreen from '../SignupScreen';
-import { useAuth } from '../AuthContext';
+import LoginScreen from '../Screens/LoginScreen';
+import SignupScreen from '../Screens/SignupScreen';
+import ForgotPasswordScreen from '../Screens/ForgotPasswordScreen';
+import { useAuth } from '../components/AuthContext';
 import { useTheme } from '../ThemeContext';
 
 const Stack = createNativeStackNavigator();
@@ -63,13 +64,15 @@ const AuthNavigator = () => {
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Language" component={LanguageScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       ) : (
         // Unauthenticated stack
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="SignUp" component={SignupScreen} />
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
         </>
       )}
     </Stack.Navigator>
@@ -86,7 +89,7 @@ const MainStackNavigator = () => {
   );
 };
 
-export default MainStackNavigator
+export default MainStackNavigator;
 
 const styles = StyleSheet.create({
   loadingContainer: {
@@ -97,4 +100,4 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 18,
   },
-})
+});

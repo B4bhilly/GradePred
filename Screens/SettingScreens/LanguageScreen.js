@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
 import React from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { typography, spacing, borderRadius } from '../../designSystem';
+import { typography, spacing, borderRadius } from '../../components/designSystem';
 import { useTheme } from '../../ThemeContext';
 
 const LanguageScreen = ({ navigation }) => {

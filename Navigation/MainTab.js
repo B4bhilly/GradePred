@@ -1,21 +1,23 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Platform } from 'react-native';
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Feather from 'react-native-vector-icons/Feather';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import HomeScreen from './WelcomeScreen';
-import CalendarScreen from './HistoryScreens/HistoryScreen';
-import ProfileScreen from './InsightsScreens/InsightsScreen'; 
-import WelcomeScreen from './HomeScreens/GradePredScreen';
-import { typography, spacing } from '../designSystem';
+import WelcomeScreen from '../Screens/WelcomeScreen';
+import CalendarScreen from '../Screens/HistoryScreens/HistoryScreen';
+import ProfileScreen from '../Screens/InsightsScreens/InsightsScreen'; 
+import GradePredScreen from '../Screens/HomeScreens/GradePredScreen';
+import { typography, spacing } from '../components/designSystem';
 import { useTheme } from '../ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
   const { colors: themeColors, isInitialized } = useTheme();
+  const insets = useSafeAreaInsets();
   
   // Safety check to ensure theme is ready
   if (!isInitialized || !themeColors) {
@@ -44,9 +46,21 @@ const MainTabNavigator = () => {
           backgroundColor: themeColors.background,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: spacing.sm,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : spacing.sm,
           paddingTop: spacing.sm,
-          height: 60,
+          height: Platform.OS === 'ios' ? 40 + insets.bottom : 60,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
           fontSize: typography.xs,
@@ -54,7 +68,7 @@ const MainTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Predict" component={WelcomeScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Predict" component={GradePredScreen} options={{ headerShown: false }} />
       <Tab.Screen name="History" component={CalendarScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Insights" component={ProfileScreen} options={{ headerShown: false }} />
     </Tab.Navigator>

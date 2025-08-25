@@ -1,11 +1,18 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_mail import Mail, Message
 import json
 from datetime import datetime
 import random
+from email_config import get_email_config, get_email_template
 
 app = Flask(__name__)
 CORS(app)
+
+# Email Configuration
+email_config = get_email_config()
+app.config.update(email_config)
+mail = Mail(app)
 
 # Simple prediction function without heavy ML dependencies
 def simple_prediction(data):
@@ -118,6 +125,55 @@ def add_grade():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/send-email', methods=['POST'])
+def send_email():
+    """Send verification email for password reset"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Extract data
+        to_email = data.get('to')
+        username = data.get('username')
+        verification_code = data.get('verificationCode')
+        template = data.get('template', 'password_reset')
+        
+        if not all([to_email, username, verification_code]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Get email template
+        email_template = get_email_template(template)
+        if not email_template:
+            return jsonify({'error': 'Email template not found'}), 400
+        
+        # Create message
+        msg = Message(
+            subject=email_template['subject'],
+            recipients=[to_email],
+            html=email_template['html_template'].format(
+                username=username,
+                verification_code=verification_code
+            )
+        )
+        
+        # Send email
+        mail.send(msg)
+        
+        print(f"✅ Email sent successfully to {to_email} for user {username}")
+        
+        return jsonify({
+            'message': 'Email sent successfully',
+            'to': to_email,
+            'username': username,
+            'template': template
+        })
+        
+    except Exception as e:
+        print(f"❌ Error sending email: {str(e)}")
+        return jsonify({'error': f'Failed to send email: {str(e)}'}), 500
 
 if __name__ == '__main__':
     print("Starting GradePred Backend...")

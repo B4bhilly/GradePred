@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { SafeAreaView, View, Text } from 'react-native';
+import { View, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import MainStackNavigator from './Navigation/MainStackNavigation';
 import { MLProvider } from './MLContext';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider } from './components/AuthContext';
 import { ThemeProvider } from './ThemeContext';
 import { useTheme } from './ThemeContext';
 
@@ -19,16 +20,19 @@ import { useTheme } from './ThemeContext';
  */
 export default function App() {
   return (
-    // Theme provider must be outermost to provide color schemes to all components
-    <ThemeProvider>
-      {/* Auth provider manages user authentication state and login/logout functionality */}
-      <AuthProvider>
-        {/* ML provider handles machine learning predictions and grade management */}
-        <MLProvider>
-          <AppContent />
-        </MLProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    // SafeAreaProvider must be outermost to provide safe area context
+    <SafeAreaProvider>
+      {/* Theme provider must be outermost to provide color schemes to all components */}
+      <ThemeProvider>
+        {/* Auth provider manages user authentication state and login/logout functionality */}
+        <AuthProvider>
+          {/* ML provider handles machine learning predictions and grade management */}
+          <MLProvider>
+            <AppContent />
+          </MLProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
